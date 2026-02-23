@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <!-- cite: data is from https://www.unb.ca/cic/datasets/andmal2020.html -->
+
+
+
+    <meta charset="UTF-8">
+    <title>Ransomware:    API Category usage by Family  </title>
+    <!-- need to import d3 -->
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+</head>
+<!-- /-->
+
+<body>
+
+
+
+
+<!-- start CITATION: Starting from in-class example: https://edstem.org/us/courses/91852/discussion/7699257 -->
+<div id="chart-container"></div>
+
+
+<script>
+
+    // svg container
+    const svgWidth  = 780;
+    const svgHeight = 550;
+    const margin = { top: 58, right: 20, bottom: 82, left: 146 };
+
+    // get real width and height
+    const width  = svgWidth  - margin.left - margin.right;
+    const height = svgHeight - margin.top  - margin.bottom;
+
+
+    // add svg object to the div object
+    const svg = d3.select("#chart-container")
+        .append("svg")
+        .attr("width", svgWidth)
+        .attr("height", svgHeight);
+
+
+
+
+
+    //
+    // adding group element - move right and down
+    const chart = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // chart title
+    svg.append("text")
+        .attr("x", svgWidth / 2)
+        .attr("y", margin.top / 2)
+        .attr("text-anchor", "middle")
+        .attr("dominant-baseline", "middle")
+        .style("font-size", "17px")
+        .style("font-weight", "bold")
+        .text("Avg API Activity by Ransomware family   ");
+
+    // x axis label
+    svg.append("text")
+        .attr("x", margin.left + width / 2)
+        .attr("y", svgHeight - 9)
+        .attr("text-anchor", "middle")
+        .style("font-size", "13px")
+        .text("Ransomware Family");
+
+    // y axis label
+    svg.append("text")
+        .attr("transform", "rotate(-90)") // make vertical
+        .attr("x", -(margin.top + height / 2))
+        .attr("y", 21)
+        .attr("text-anchor", "middle")
+        .style("font-size", "17px")
+        .text("API Type");
+
+    // same load file async
+    // CITATION: d3.csv() :: https://d3js.org/d3-fetch#csv
+    d3.csv("heatmap-data.csv").then(function(inputData) {
+
+        console.log("Csvrow count:", inputData.length, "\t first :", inputData[0]);
+
+        // cast    from string to number
+        inputData.forEach(row => row.avg_calls = +row.avg_calls);
+
+        // group and get keys which will be the indiv categories (keymap)
+        const cats     = Array.from(d3.group(inputData, d => d.api_category).keys());
+        const fams = Array.from(d3.group(inputData, d => d.family).keys());
+
+        // CITATION: d3.scaleBand()  https://d3js.org/d3-scale#scaleBand
+        const scaleX = d3.scaleBand()
+            .domain(fams) // cat inputs as groups, fams
+            .range([0, width])
+            .padding(0.05);
+
+        const scaleY = d3.scaleBand()
+            .domain(cats) // grouping of category
+            .range([0, height])
+            .padding(0.05);
+
+
+
+
+        // per tutorial:
+        // https://library.fridoverweij.com/docs/d3tutorial/sequential_scales.html
+        /*
+        d3.scaleSequentialLog, maps the domain by a logarithmic function, before calling the interpolator.
+         */
+
+
+
+        // TODO - figure out why min needs to be 1, failing on 0
+        // console.log("debuging: " + d3.min(inputData, rowData => rowData.avg_calls))
+        // CITATION: was failing on 0 min, foudn fix in here: https://stackoverflow.com/questions/15163640/use-d3-log-scale-instead-of-linear-scale
+        // basically, need to set to 1 for logarithmic
+        const cScale = d3.scaleSequentialLog()
+            .domain([1, d3.max(inputData, d => d.avg_calls)])               // need to adjust min to 0, will lose some data if 0
+            // .interpolator(d3.interpolateViridis);
+            .interpolator(d3.interpolateYlOrRd);
+
+        // CITATION: same from class exmple
+        chart.append("g")
+            .attr("class", "axis axis-x")
+            .attr("transform", `translate(0, ${height})`)
+            .call(d3.axisBottom(scaleX))
+            .selectAll("text")
+            .attr("transform", "rotate(-30)")
+            .attr("text-anchor", "end");
+        chart.append("g")
+            .attr("class", "axis axis-y")
+            .call(d3.axisLeft(scaleY));
+
+
+
+
+
+        // CITATION: add all boxes and fill will be the color scale to show weights..
+        chart.selectAll("rect")
+            .data(inputData)
+            .enter()
+            .append("rect")
+            .attr("x", d => scaleX(d.family))
+            .attr("y", d => scaleY(d.api_category))
+            .attr("width",  scaleX.bandwidth())
+            .attr("height", scaleY.bandwidth())
+            .attr("fill", d => cScale(d.avg_calls));
+    });
+    //
+
+
+</script>
+
+</body>
+
+</html>
