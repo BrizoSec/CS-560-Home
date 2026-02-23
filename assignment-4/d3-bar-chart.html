@@ -28,7 +28,7 @@
         // Set up the SVG container
         const svgWidth = 600;
         const svgHeight = 400;
-        const margin = { top: 20, right: 20, bottom: 30, left: 100 };
+        const margin = { top: 52, right: 20, bottom: 52, left: 100 };
 
         // get real width and height accounting for margins
         const width = svgWidth - margin.left - margin.right;
@@ -47,10 +47,43 @@
             .append("svg")
             .attr("width", svgWidth)
             .attr("height", svgHeight);
+        //
 
         // adding group element Group
         const chart = svg.append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        // addint title -
+        svg.append("text")
+            .attr("x", svgWidth / 2) // put in middle
+            .attr("y", margin.top / 2)
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "middle")
+            .style("font-size", "14px")
+            .style("font-weight", "bold")
+            .text("Ransomware count by family ");
+
+        //
+        // place x label at bottom of chart in the midle
+        svg.append("text")
+            .attr("x", margin.left + width / 2)
+            .attr("y", svgHeight - 8)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .text("Ransomware Family   ");
+
+
+
+
+
+        // using transform to rotate text to be vertical
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("x", - (margin.top + height / 2))
+            .attr("y", 19)
+            .attr("text-anchor", "middle")
+            .style("font-size", "13px")
+            .text("Sample Count  ");
 
         // load data in file per class example, async operation
         // CITATION: d3.csv() :: https://d3js.org/d3-fetch#csv
