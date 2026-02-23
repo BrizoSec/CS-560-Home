@@ -15,13 +15,33 @@
 <!--     need to import d3-->
     <script src="https://d3js.org/d3.v7.min.js"></script>
 
+    <style>
+        /* Tooltip styles from ed posting  */
+        /*https://edstem.org/us/courses/91852/discussion/7700634*/
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.75);
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            z-index: 10;
+        }
+
+    </style>
 
 </head>
-<!--//-->
+<!--// tooltip missing z-index to be on top of image   -->
+
 <body>
 
 <!--    CITATION: Starting from in-class example: https://edstem.org/us/courses/91852/discussion/7699257-->
     <div id="chart-container"></div>
+    <div class="tooltip" id="tooltip"></div>
 
     <script>
 
@@ -86,9 +106,9 @@
             .text("Sample Count  ");
 
         // load data in file per class example, async operation
-        // CITATION: d3.csv() :: https://d3js.org/d3-fetch#csv
+        // ref: d3.csv() : https://d3js.org/d3-fetch#csv
         d3.csv("summary-bar-chart.csv").then(function(inputRanSum) {
-            console.log("Tsting__row count     ", inputRanSum.length, "\nFirst row:", inputRanSum[0]);
+            // console.log("Tsting__row count     ", inputRanSum.length, "\nFirst row:", inputRanSum[0]);
 
 
             // change count column to number Defaults to string
@@ -124,8 +144,11 @@
 
 
 
+            // from class exaple
+            const tooltip = d3.select("#tooltip");
 
-            // Add bars --
+
+            //
             // uses append to add rect bars for columns
             chart.selectAll(".bar")
                 .data(inputRanSum)
@@ -136,7 +159,30 @@
                 .attr("y", d => scaleY(d.count))
                 .attr("width", scaleX.bandwidth())
                 .attr("height", d => height - scaleY(d.count))
-                .attr("fill", "#0a31f3"); // adding my own color for flare
+                .attr("fill", "#0a31f3") // adding my own color for flare
+
+
+
+                //////////////////////////////////////
+                // todo look into how opacity values work specifically, tried 2
+                .on("mouseover", function(event, d) {
+                    tooltip.style("opacity", 1) // opacity 2 doesnt work
+                        .style("left", (event.pageX + 13) + "px")
+                        .style("top",  (event.pageY - 26) + "px")
+                        .html(`number of  samples : ${d.count}`);
+                })
+
+                /////////////////////////////
+                .on("mousemove", function(event) {
+                    tooltip.style("left", (event.pageX + 12) + "px").style("top",  (event.pageY - 28) + "px");
+                })
+
+                //////////////////
+                .on("mouseout", function() {
+                    tooltip.style("opacity", 0);
+                });
+
+                ////////////////
         });
 
 

@@ -80,20 +80,20 @@
     
     
     // CITATION: d3.csv() :: https://d3js.org/d3-fetch#csv async 
-    d3.csv("summary-histogram-chart.csv").then(function(rawHistInputData) {
-        console.log(" row count:  ", rawHistInputData.length, "\n first row data:", rawHistInputData[0]);
+    d3.csv("summary-histogram-chart.csv").then(function(rawIn) {
+        console.log(" row count:  ", rawIn.length, "\n first row data:", rawIn[0]);
 
         // convert network_received_bytes from string to number
         // TODO need to filter out 0 rows because the volume is making the other bars look like 0, or log scale.
-        rawHistInputData.forEach(row => row.network_received_bytes = +row.network_received_bytes);
+        rawIn.forEach(row => row.network_received_bytes = +row.network_received_bytes);
 
 
         // filter out zerobyte rows s
-        const excludeZeroBinCount = rawHistInputData.filter(row => row.network_received_bytes > 0); //
+        const modifiedIn = rawIn.filter(row => row.network_received_bytes > 0); //
 
         // using scaleLInear same as class ex - maybe do log later
         const scaleX = d3.scaleLinear()
-            .domain([0, d3.max(excludeZeroBinCount, row => row.network_received_bytes)])
+            .domain([0, d3.max(modifiedIn, row => row.network_received_bytes)])
             .nice() //
             .range([0, width]);
 
@@ -105,7 +105,8 @@
 
 
         // referencx: d3.bin() split into buckets : : https://d3js.org/d3-array/bin
-        // CITATION: gallery pattern - thresholds from scale ticks so bin edges align with axis labels
+        //
+
         // https://d3-graph-gallery.com/graph/histogram_basic.html
         const histogram = d3.bin()
             .value(d => d.network_received_bytes)
@@ -114,13 +115,15 @@
         // console.log('examine histogram obj:' + histogram(excludeZeroBinCount).toString())
 
         // reference: https://d3-graph-gallery.com/graph/histogram_basic.html
-        const histogramObj = histogram(excludeZeroBinCount);
+        const histObj = histogram(modifiedIn);
+
+
 
 
 
         // --------------------------------------------------------------
         const scaleY = d3.scaleLinear()
-            .domain([0, d3.max(histogramObj, bin => bin.length)]) // leverage bin lenght on object directly
+            .domain([0, d3.max(histObj, bin => bin.length)]) // leverage bin lenght on object directly
             .nice().range([height, 0]);
 
 
@@ -131,7 +134,7 @@
 
         // render res
         chart.selectAll("rect")
-            .data(histogramObj) // pass in full object like in example (above)
+            .data(histObj) // pass in full object like in example (above)
             .enter() //
             .append("rect") // add columns
             .attr("x", bin => scaleX(bin.x0) + 1)
