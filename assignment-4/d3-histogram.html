@@ -16,6 +16,7 @@
     
 </head>
 <!-- // -->
+
 <body>
 
 <!-- CITATION: Starting from in-class example: https://edstem.org/us/courses/91852/discussion/7699257 -->
@@ -88,13 +89,20 @@
 
 
         // filter out zerobyte rows s
-        const excludeZeroBinCount = rawHistInputData.filter(d => d.network_received_bytes > 0); //
+        const excludeZeroBinCount = rawHistInputData.filter(row => row.network_received_bytes > 0); //
 
         // using scaleLInear same as class ex - maybe do log later
         const scaleX = d3.scaleLinear()
-            .domain([0, d3.max(excludeZeroBinCount, d => d.network_received_bytes)])
+            .domain([0, d3.max(excludeZeroBinCount, row => row.network_received_bytes)])
             .nice() //
             .range([0, width]);
+
+
+
+
+
+
+
 
         // referencx: d3.bin() split into buckets : : https://d3js.org/d3-array/bin
         // CITATION: gallery pattern - thresholds from scale ticks so bin edges align with axis labels
@@ -103,6 +111,7 @@
             .value(d => d.network_received_bytes)
             .domain(scaleX.domain()) // basically input domain is the histogram range
             .thresholds(scaleX.ticks(8));  // d3 will probably not mathc this anyway
+        // console.log('examine histogram obj:' + histogram(excludeZeroBinCount).toString())
 
         // reference: https://d3-graph-gallery.com/graph/histogram_basic.html
         const histogramObj = histogram(excludeZeroBinCount);
@@ -114,9 +123,11 @@
             .domain([0, d3.max(histogramObj, bin => bin.length)]) // leverage bin lenght on object directly
             .nice().range([height, 0]);
 
+
         // axis location and ticks
         chart.append("g").attr("class", "axis axis-x").attr("transform", `translate(0, ${height})`).call(d3.axisBottom(scaleX).ticks(5));
         chart.append("g").attr("class", "axis axis-y").call(d3.axisLeft(scaleY).ticks(12));
+
 
         // render res
         chart.selectAll("rect")
@@ -133,6 +144,7 @@
 </script>
 
 </body>
+
 
 
 
