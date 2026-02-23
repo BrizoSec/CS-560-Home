@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <title>Ransomware ANalysis Memory & Network by Family</title>
+
+    <!-- data is from https://www.unb.ca/cic/datasets/andmal2020.html -->
+
+
+
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+</head>
+<body>
+
+<!-- CITATION: Starting from in-class example: https://edstem.org/us/courses/91852/discussion/7699257 -->
+<div id="chart-container"></div>
+
+<script>
+    const svgWidth = 650;
+    const svgHeight = 400;
+    const margin = { top: 54, right: 20, bottom: 55, left: 91 };
+
+
+    // calc true height and with
+    const width  = svgWidth  - margin.left - margin.right;
+    const height = svgHeight - margin.top  - margin.bottom;
+
+
+    // add svg object to the div object -
+    const svg = d3.select("#chart-container")
+        .append("svg")
+        .attr("width", svgWidth)
+        .attr("height", svgHeight);
+    /////////////////
+
+    // reference - example from the book, chapter 6
+    const chart = svg.append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+
+
+
+    // chart title - larg in middle
+    svg.append("text")
+        .attr("x", svgWidth / 2)
+        .attr("y", margin.top / 2) // in middle of top marg
+        .attr("text-anchor", "middle")
+        .style("font-size", "19px")
+        .style("font-weight", "bold")
+        .text("  Memory heap Allocation vs Network bytes");
+
+
+    // x label -
+    svg.append("text")
+        .attr("x", margin.left + width / 2)
+        .attr("y", svgHeight - 8)
+        .attr("text-anchor", "middle")
+        .style("font-size", "13px")
+        .text("Memory Heap   (bytes)");
+
+    // yaxis (copied from barchart example) and tweaked the sizing
+    svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("x", -(margin.top + height / 2))
+        .attr("y", 20)
+        .attr("text-anchor", "middle")
+        .style("font-size", "13px")
+        .text("Network Bytes   received");
+
+
+
+
+    // CITATION: d3.csv() returns a Promise — https://d3js.org/d3-fetch#csv
+    d3.csv("summary-scatter-chart.csv").then(function(inputData) {
+
+        // console.log("Csv r   count: ", data.length, "\n\nsample :", inputData[0]);
+
+        // convert both vars to numbers
+
+        inputData.forEach(inRow => {
+            inRow.memory_heap_alloc      = +inRow.memory_heap_alloc;
+
+
+            inRow.network_received_bytes = +inRow.network_received_bytes;
+
+        });
+
+
+        /////////
+        // CITATION: from book, scaleX example
+        const scaleX = d3.scaleLinear()
+            .domain([0, d3.max(inputData, d => d.memory_heap_alloc)])
+            .nice() // used from book
+            .range([0, width]);
+
+
+
+
+
+
+        const scaleY = d3.scaleLinear()
+            .domain([0, d3.max(inputData, d => d.network_received_bytes)])
+            .nice() // book
+            .range([height, 0]);
+
+
+        // CITATION: d3.axisBottom : https://d3js.org/d3-axis
+        chart.append("g")
+            .attr("transform", `translate(0, ${height})`)
+            .call(d3.axisBottom(scaleX).ticks(5));
+
+
+        // set five ticks explicit
+        chart.append("g")
+            .call(d3.axisLeft(scaleY).ticks(5));
+
+
+
+
+
+
+
+
+        // CITATION: referenced the 'visual marks' section of this blog, https://observablehq.com/@mahog/d3-tutorial-part-3-lets-make-a-scatter-plot-solution
+        chart.selectAll("circle")
+            .data(inputData)
+            .enter()
+            .append("circle")
+            .attr("cx", d => scaleX(d.memory_heap_alloc))
+            .attr("cy", d => scaleY(d.network_received_bytes))
+            .attr("r", 5)
+            .attr("fill", "#c10af3") //
+            .attr("opacity", 0.71);
+    });
+
+</script>
+
+</body>
+
+
+
+
+</html>
+<!--//-->
+
+
+
+
+
+
