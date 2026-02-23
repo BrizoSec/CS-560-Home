@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+
+<!--    data is from https://www.unb.ca/cic/datasets/andmal2020.html-->
+
+
+
+
+    <meta charset="UTF-8">
+
+
+    <title>Ransomware - Sample by Family</title>
+<!--     need to import d3-->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+
+</head>
+<!--//-->
+<body>
+
+<!--    CITATION: Starting from in-class example: https://edstem.org/us/courses/91852/discussion/7699257-->
+    <div id="chart-container"></div>
+
+    <script>
+
+        // Set up the SVG container
+        const svgWidth = 600;
+        const svgHeight = 400;
+        const margin = { top: 20, right: 20, bottom: 30, left: 100 };
+
+        // get real width and height accounting for margins
+        const width = svgWidth - margin.left - margin.right;
+        const height = svgHeight - margin.top - margin.bottom;
+
+
+
+
+
+
+
+
+
+        // add svg object to the div object
+        const svg = d3.select("#chart-container")
+            .append("svg")
+            .attr("width", svgWidth)
+            .attr("height", svgHeight);
+
+        // adding group element Group
+        const chart = svg.append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        // load data in file per class example, async operation
+        // CITATION: d3.csv() :: https://d3js.org/d3-fetch#csv
+        d3.csv("summary-bar-chart.csv").then(function(inputRanSum) {
+            console.log("Tsting__row count     ", inputRanSum.length, "\nFirst row:", inputRanSum[0]);
+
+
+            // change count column to number Defaults to string
+            inputRanSum.forEach(rowCountVal => rowCountVal.count = +rowCountVal.count);
+            // console.log("ransomwareFamilies:", inputRanSum.map(row => row.family), "\n\tmax__", d3.max(inputRanSum, row => row.count));
+
+            // Define X and Y scales (from in class example again)
+            // CITATION: d3.scaleBand() :: https://d3js.org/d3-scale#scaleBand
+            const scaleX = d3.scaleBand()
+                .domain(inputRanSum.map(d => d.family))
+                .range([0, width])
+                .padding(0.1);
+
+            // ////////////////
+            const scaleY = d3.scaleLinear()
+                .domain([0, d3.max(inputRanSum, d => d.count)])
+                .nice()
+                .range([height, 0]);
+
+            // Add X and Y axes
+            // CITATION: chapter 7 in the book
+            chart.append("g")
+                .attr("class", "axis axis-x")
+                .attr("transform", `translate(0, ${height})`)
+                .call(d3.axisBottom(scaleX));
+
+            // set element group to have the axis and ax y classes, also set the ticks count
+            chart.append("g")
+                .attr("class", "axis axis-y")
+                .call(d3.axisLeft(scaleY).ticks(5));
+
+
+
+
+
+
+            // Add bars --
+            // CITATION: selectAll/data/enter/append is the D3 general update pattern — https://d3js.org/d3-selection/joining
+            chart.selectAll(".bar")
+                .data(inputRanSum)
+                .enter()
+                .append("rect")
+                .attr("class", "bar")
+                .attr("x", d => scaleX(d.family))
+                .attr("y", d => scaleY(d.count))
+                .attr("width", scaleX.bandwidth())
+                .attr("height", d => height - scaleY(d.count))
+                .attr("fill", "#0a31f3"); // adding my own color for flare
+        });
+
+
+    </script>
+
+</body>
+
+</html>
+
+
+
+
+
+<!--//-->
