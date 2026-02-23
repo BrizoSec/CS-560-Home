@@ -73,7 +73,7 @@
 
 
 
-    // CITATION: d3.csv() returns a Promise — https://d3js.org/d3-fetch#csv
+    // CITATION: d3.csv() https://d3js.org/d3-fetch#csv
     d3.csv("summary-scatter-chart.csv").then(function(inputData) {
 
         // console.log("Csv r   count: ", data.length, "\n\nsample :", inputData[0]);
@@ -124,6 +124,8 @@
 
 
 
+
+        // console.log('buidling scatter ...')
         // CITATION: referenced the 'visual marks' section of this blog, https://observablehq.com/@mahog/d3-tutorial-part-3-lets-make-a-scatter-plot-solution
         chart.selectAll("circle")
             .data(inputData)
