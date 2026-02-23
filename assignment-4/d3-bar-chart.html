@@ -183,7 +183,16 @@
                 });
 
                 ////////////////
+
+            // label on bars, using example from chaptr 6
+            chart.selectAll(".bar-label")
+                .data(inputRanSum).enter().append("text")
+                .attr("class", "bar-label")
+                .attr("x", d => scaleX(d.family) + scaleX.bandwidth() / 2).attr("y", d => scaleY(d.count) - 4).attr("text-anchor", "middle").style("font-size", "11px").text(rowVals => rowVals.count);
         });
+
+        /////
+
 
 
     </script>
