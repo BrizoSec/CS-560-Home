@@ -93,7 +93,7 @@
 
 
             // Add bars --
-            // CITATION: selectAll/data/enter/append is the D3 general update pattern — https://d3js.org/d3-selection/joining
+            // uses append to add rect bars for columns
             chart.selectAll(".bar")
                 .data(inputRanSum)
                 .enter()
