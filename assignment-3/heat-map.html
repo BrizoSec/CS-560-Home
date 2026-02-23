@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heat Map: File I/O Activity: Ransomware vs File Infector Families</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <!-- helper functions to read data and split into malware vs fileInfector buckets -->
+    <script src="helperFns.js"></script>
+
+
+
+
+
+</head>
+<body>
+    <h1>File I/O Activity of Malware</h1>
+    <a href="index.html">Return to Home </a>
+
+
+
+
+    <div id="can-c"></div>
+
+    <script>
+        // init variables
+        let rawData = [];
+        let heatmapData = {};
+        let _families = [];
+        let categories = ['Ransomware', 'FileInfector'];
+
+
+        // max value location for annotation
+        let maxValLocation = { family: '', category: '', value: 0, row: -1, col: -1 };
+
+        // layout variables
+        const CANVAS_WIDTH = 1100; // 1200 to large for extra text
+        const CANVAS_HEIGHT = 600;
+        const MARGIN_LEFT = 120;
+        const MARGIN_RIGHT = 280; // need extra space for annotation
+        const MARGIN_TOP = 80;
+        const MARGIN_BOTTOM = 50;
+        const CELL_PADDING = 4;
+
+        // color scale for heatmap
+        const MIN_VALUE = 0;
+        const MAX_VALUE = 29; // hardcoding to match masnu
+        const COLOR_MIN = '#FFE082'; // yellow
+        const COLOR_MAX = '#C62828'; // red
+
+
+
+
+
+
+
+
+
+
+        async function loadSourceData() {
+            // use load helper fn
+            console.log('load data...');
+
+            rawData = await loadReferenceData();
+
+            // console.log('data row count:', rawData.length);
+
+            // check first row structure
+            if (rawData.length > 0) {
+                console.log('First row Category:', rawData[0].Category);
+                console.log('First row Family:', rawData[0].Family);
+            }
+
+            /////////////
+            // Get unique families
+            const uniqueFamilies = new Set();
+
+            rawData.forEach((d) => {
+                if (d.Family && d.Family !== '<unknown>') { // skip unknown values
+                    uniqueFamilies.add(d.Family);
+                }
+            });
+
+            _families = Array.from(uniqueFamilies).sort(); // alphabetical looks nicer
+            // console.log('families found:', families.length);
+            // console.log('Families:', families);
+            /////////////////
+
+            // do aggregation (averages) for each family + category combination
+            heatmapData = {};
+
+
+            // nested loop: loop through families and...
+            for (let family of _families) {
+                heatmapData[family] = {};
+
+                // ...loop through categories
+                for (let category of categories) {
+                    const filteredSamples = rawData.filter(d => d.Family === family && d.Category === category);
+
+                    // aggregate the number of io calls
+                    if (filteredSamples.length > 0) {
+                        const fullSumOfFiltered = filteredSamples.reduce((tot, d) => tot + (d['API_FileIO_libcore.io.IoBridge_open'] || 0), 0);
+                        // set critcal map value
+                        heatmapData[family][category] = fullSumOfFiltered / filteredSamples.length;
+
+
+                    } else {
+                        heatmapData[family][category] = null;
+                    }
+                }
+            }
+
+            console.log('Heatmap data:', heatmapData);
+            // add label to draw attention to highest family
+            // console.log('Highest file io :', maxValLocation.family, '-', maxValLocation.category, '=', maxValLocation.value.toFixed(2));
+
+            console.log('Data loading done.........');
+        }
+
+
+        /////////////
+        function setup() {
+            let canvas = createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
+
+
+            // fixing spacing
+            canvas.parent('can-c');
+            textFont('Arial');
+            loadSourceData();
+
+
+            console.log('Setup done....');
+        }
+        ////////
+
+        function draw() {
+            background(255);
+
+            // console.log("Starting draw...")
+
+            //  title
+            fill(0);
+            textAlign(CENTER, CENTER);
+            textSize(18);
+            textStyle(BOLD);
+            text('File I/O Activity: Ransomware vs File Infector Families ', width / 2, 30);
+            textStyle(NORMAL);
+
+
+            // cell dimensions w/ margin considered
+            const chartWidth = CANVAS_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
+            const chartHeight = CANVAS_HEIGHT - MARGIN_TOP - MARGIN_BOTTOM;
+            const cellWidth = chartWidth / categories.length;
+            const cellHeight = chartHeight / _families.length;
+
+
+
+
+            // heatmap cells
+            for (let i = 0; i < _families.length; i++) {
+                for (let j = 0; j < categories.length; j++) {
+
+                    // base variables
+                    const _fam = _families[i];
+                    const _cat = categories[j];
+                    const _val = heatmapData[_fam][_cat];
+
+
+
+                    /// increase horiziontally and vertically
+                    const x =  MARGIN_LEFT + j * cellWidth +  CELL_PADDING;
+                    const y = MARGIN_TOP + i * cellHeight + CELL_PADDING;
+                    const w = cellWidth - 2 * CELL_PADDING;
+                    const h = cellHeight - 2 * CELL_PADDING;
+
+
+                    // set cell color
+                    if (_val === null) {
+
+                        fill(240); // gray
+
+                    } else {
+                        // using lerpColor (REF: https://p5js.org/reference/p5/lerpColor/) to blend from yellow to red
+                        // using constrain to strictly tie between min and max
+                        // set value to yellow-red gradient
+                        const t = constrain(_val, MIN_VALUE, MAX_VALUE);
+                        const ratio = (t - MIN_VALUE) / (MAX_VALUE - MIN_VALUE);
+                        const c = lerpColor(color(COLOR_MIN), color(COLOR_MAX), ratio);
+                        fill(c);
+                    }
+
+                    // draw individual family mal - rectangle
+                    stroke(210);
+                    strokeWeight(1);
+                    rect(x, y, w, h);
+
+                    // draw value text if not missing
+                    if (_val !== null) {
+                        fill(0);
+                        noStroke();
+                        textAlign(CENTER, CENTER);
+                        textSize(10);
+                        text(_val.toFixed(1), x + w/2, y + h/2);
+                    }
+                }
+            }
+
+            ////////////
+
+            // Y-axis labels (families)
+            fill(0);
+            noStroke();
+            textAlign(RIGHT, CENTER);
+            textSize(12);
+            for (let i = 0; i < _families.length; i++) {
+                const y = MARGIN_TOP + i * cellHeight + cellHeight / 2;
+                text(_families[i], MARGIN_LEFT - 10, y);
+            }
+
+            // X-axis labels (categories)
+            textAlign(CENTER, CENTER);
+            textSize(12);
+            for (let j = 0; j < categories.length; j++) {
+                const x = MARGIN_LEFT + j * cellWidth + cellWidth / 2;
+                text(categories[j], x, MARGIN_TOP - 20);
+            }
+
+            // need legend
+            addLegend();
+
+            // Add annotation for highest value (draw attention to this!)
+            // console.log(maxValLocation.row, maxValLocation.col)
+            drawAnnotation();
+
+        }
+
+
+        //////
+        function addLegend() {
+            const legendX = CANVAS_WIDTH - MARGIN_RIGHT + 40;
+            const legendY = MARGIN_TOP + 50;
+            const widthLeg = 34;
+            const heightLeg = 320;
+
+            // set gradient
+            for (let i = 0; i < heightLeg; i++) {
+                // ratio used to gradually change color scheme
+                const ratio = 1 - (i / heightLeg);
+                const c = lerpColor(color(COLOR_MIN), color(COLOR_MAX), ratio);
+                stroke(c);
+                strokeWeight(1);
+                line(legendX, legendY + i, legendX + widthLeg, legendY + i);
+            }
+
+            // set border
+            noFill();
+            stroke(0);
+            strokeWeight(1);
+            rect(legendX, legendY, widthLeg, heightLeg);
+            // set labels
+            fill(0);
+            noStroke();
+            textAlign(LEFT, CENTER);
+            textSize(12);
+            text(MAX_VALUE, legendX + widthLeg + 10, legendY);
+            text(((MIN_VALUE + MAX_VALUE) / 2).toFixed(1), legendX + widthLeg + 10, legendY + heightLeg / 2);
+            text(MIN_VALUE, legendX + widthLeg + 10, legendY + heightLeg);
+            // set title
+            textAlign(CENTER, CENTER);
+            textSize(12);
+            textStyle(BOLD);
+            text('Avg API Calls', legendX + widthLeg / 2, legendY - 20);
+            textStyle(NORMAL);
+        }
+
+
+
+        // add note on the highest value
+        function drawAnnotation() {
+
+            //
+            // set max for annotation
+
+            // hardcoding for now, trying to auto set has bug
+            // TODO - fix with auto setting
+            maxValLocation.family = 'masnu';
+            maxValLocation.category = 'Ransomware';
+            maxValLocation.value = 29;
+
+
+
+
+            // draw circle
+            noFill();
+            stroke(90, 50, 255, 200); // circle
+            strokeWeight(3);
+
+            circle(295, 400, 39);
+
+            // annotation arrow and text
+            // console.log('Notify -- ')
+
+            // draw arrow line
+            stroke(50, 50, 255, 220);
+            strokeWeight(2.4);
+            line(435, 392, 926, 337); // hardcoding, this seems about right
+
+
+
+            // annotation text box
+            fill(255, 255, 243, 243);           // light yellowish background
+            stroke(50, 50, 255, 180);
+            strokeWeight(2);
+            const xBox = 926;
+            const yBox = 337 - 25;
+            rect(xBox, yBox, 165, 40, 0);
+            // text inside box
+
+            fill(20);
+            noStroke();
+            textAlign(LEFT, TOP);
+            textSize(11);
+            text('Highest File I/O ', xBox + 7, yBox + 6);
+            textSize(10);
+            text('Average: ' + maxValLocation.value.toFixed(1) + ' API Calls', xBox + 7, yBox + 28);
+
+
+        }
+
+    </script>
+
+    <br><br>
+
+
+
+
+
+
+    <img src="heatmap-tableau.png">
+
+
+</body>
+</html>
+
+
+

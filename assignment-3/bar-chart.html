@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bar Chart - Assignment 1</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <!-- moving helper functions to read data and split into malware vs fileInfector buckets -->
+    <script src="helperFns.js"></script>
+
+
+</head>
+<body>
+
+    <h1>Bar Chart: Average Total Network Bytes Received per Malware Sample</h1>
+    <a href="index.html">Return to Home Page</a>
+
+
+    <div id="canv-holder"></div>
+
+    <script>
+        // overall steps include loading data asynchronously, aggregating data to show in bar chart and drawing
+        // the graph
+
+        // graph spacing vairables
+        let _data = [];
+        let leftMarg = 120;
+        let rightMarg = 52;
+        let topMarg = 61;
+        let botMarg = 60;
+
+
+
+
+
+
+        //  control chart height and width
+        let cWidth, cHeight;
+
+
+
+        async function custom_load_data_in() {
+            // load data using js async await
+
+            const base = await loadReferenceData();
+            console.log('samples:', base.length);
+
+            // get malware groups and calculate average network bytes
+            const categoriesOfMalware = splitDataByMalwareType(base)
+            console.log('chaseXyz' + categoriesOfMalware)
+
+
+            // loop over array of category names (fileInfector, Ransomware)
+            _data = Object.keys(categoriesOfMalware).map(category => {
+                // calculate average by recalcing the particular average for the gien malware type
+                // REF: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/map
+                const categoryDataset = categoriesOfMalware[category];
+
+                // use lambda like loop to calculate average (REF: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce)
+                const averageNetBytes = categoryDataset.reduce((sum, d) => sum + d.Network_TotalReceivedBytes, 0) / categoryDataset.length;
+                // console.log(`Avg Check---   ${category}: ${categoryDataset.length} sample #, avg- ${averageNetBytes.toFixed(0)} `);
+
+                return { // return object with label value count and category
+                    label: category,
+                    value: averageNetBytes,
+                    count: categoryDataset.length,
+                    category: category
+                };
+            });
+        }
+
+        // per class, need setup which is auto called by p5js code
+        function setup() {
+            let canvas = createCanvas(920, 410);
+
+            //
+            canvas.parent('canv-holder');
+
+
+            cWidth = width - leftMarg - rightMarg;
+            cHeight = height - topMarg - botMarg;
+            // console.log('checkpoint1-size:', width, 'x', height);
+
+            // laod data
+            custom_load_data_in();
+        }
+
+        //
+
+        // called by p5.js
+        function draw() {
+            background(250); // set background to white-ish
+
+            // calculate bar dimensions
+            let barHeight = cHeight / _data.length - 22;
+            let maxValue = 400300 // harcoding based on data, can't figure out how to do this dynamically
+            // if you can show us how to do this dynamically, would appreciate it
+
+
+
+
+
+
+            // Check for hovering
+            let hoveringStatus = -1; // no bar is under mouse pointer
+
+            ////////////
+
+            //// used this reference: MDN 2D Collision Detection
+            // https://developer.mozilla.org/en-US/docs/Games/Techniques/2D_collision_detection
+
+            for (let i = 0; i < _data.length; i++) {
+                let y_pos = topMarg + i * (cHeight / _data.length); // calc y bar position
+                let widthOfHorizontalBar = map(_data[i].value, 0, maxValue, 0, cWidth); // (x, min, max, min, maxY)
+
+                // per the axis-aligned example, if the mouse is within bounds, set to match category index
+                if (mouseX > leftMarg && mouseX < leftMarg + widthOfHorizontalBar &&
+                    mouseY > y_pos && mouseY < y_pos + barHeight) {
+                    hoveringStatus = i;
+                    // Log hover (throttled to avoid spam)
+                    if (frameCount % 60 === 0) {
+                        // console.log('Checkpoint2-hovering:', _data[i].label);
+                    }
+                }
+            }
+
+
+
+
+
+
+
+
+
+            // Draw bars
+            for (let i = 0; i < _data.length; i++) {
+                let y = topMarg + i * (cHeight / _data.length); // divides space evenly by number of cats
+                let barWidth = map(_data[i].value, 0, maxValue, 0, cWidth);
+
+                // set color of bars
+                let barColor;
+                barColor = [89, 130, 220];
+
+                fill(barColor[0], barColor[1], barColor[2]);
+                stroke(barColor[0] - 30, barColor[1] - 30, barColor[2] - 30);
+                strokeWeight(2);
+                rect(leftMarg, y, barWidth, barHeight, 5);
+
+                // put y axis labels - required per assignment (must be evenly spaced)
+                noStroke();
+                textAlign(RIGHT, CENTER);
+                textSize(14);
+                text(_data[i].label, leftMarg - 10, y + barHeight / 2); // place label in middle (/2)
+            }
+
+            // add axes
+            stroke(0);
+            strokeWeight(2);
+            line(leftMarg, height - botMarg, width - rightMarg, height - botMarg); // x-axis with margins
+            // i was having an issue where the x axis labels were not showing b/c the margin was too small
+            line(leftMarg, topMarg, leftMarg, height - botMarg); // y-axis w/ margins
+
+            // x-axis labels (values to measure)
+            fill(0);
+            noStroke();
+            textAlign(CENTER, TOP);
+            textSize(11.5);
+
+
+            // copying from p5.js website for reference
+            // https://p5js.org/reference/p5/map/
+            /**
+             *
+             * function draw() {
+             *   background(200);
+             *
+             *   // Draw the top line.
+             *   line(0, 25, mouseX, 25);
+             *
+             *   // Remap mouseX from [0, 100] to [0, 50].
+             *   let x = map(mouseX, 0, 100, 0, 50);
+             *
+             *   // Draw the bottom line.
+             *   line(0, 75, x, 75);
+             * }
+             */
+
+            // create 7 evenly spaced tick marks on x axis (played around and found 7 seemed to look good)
+            for (let i = 0; i <= 6; i++) {
+                let xPos = map(i, 0, 5, leftMarg, width - rightMarg);
+                let value = Math.round(map(i, 0, 5, 0, maxValue));
+                text(value.toLocaleString(), xPos, height - botMarg + 5);
+
+                // draw grid lines as well
+                stroke(200);
+                strokeWeight(1);
+                line(xPos, topMarg, xPos, height - botMarg);
+            }
+
+
+
+
+
+            // tooltip
+            if (hoveringStatus !== -1) { // -1 mwans user is not on a bar currently
+                interactions(hoveringStatus);
+            }
+        }
+
+
+
+
+        //  add tooltip for interactions
+        function interactions(categoryIdx) {
+            let xAxisTooltip = mouseX + 20; // add a bit extra for margins
+            // REF: https://p5js.org/reference/#/p5/mouseX
+            let yAxistooltip = mouseY;
+            // REF: https://p5js.org/reference/#/p5/mouseY
+
+            // background colors
+            fill(30, 31, 30, 240);
+            noStroke(); // no border for the tooltip
+            rectMode(CORNER); // add rounded corners to tooltip
+            rect(xAxisTooltip, yAxistooltip, 182, 71, 5);
+
+            // add text to tooltip
+            fill(254);
+            textAlign(LEFT, TOP);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            // add network bytes count to tooltip
+            textSize(11);
+            text('Avg Network Bytes: ', xAxisTooltip + 12, yAxistooltip + 24);
+            textSize(11);
+            text(_data[categoryIdx].value.toLocaleString() + ' bytes ', xAxisTooltip + 12, yAxistooltip + 41);
+        }
+
+    </script>
+
+
+
+
+
+    <br><br>
+    <img src="bar-chart-tableau.png">
+
+
+
+</body>
+</html>
+
+

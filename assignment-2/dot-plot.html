@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dot Plot - Assignment 2</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <!-- moving helper function to read data and split into malware vs fileInfector buckets -->
+    <script src="helperFns.js"></script>
+
+
+
+
+
+
+
+
+
+</head>
+<body>
+    <h1>Instances of Base64 Encoding by Malware Type</h1>
+    <a href="index.html">Return to Home </a>
+    <div id="canvas-c"></div>
+
+    <script>
+        // create base variables for positioning and data
+        let baseData = [];
+        // let checkpoint = false;
+
+
+        let margin = 72;
+        let chartWidth, chartHeight;
+        let dotRadius = 5;
+
+
+
+
+
+
+        //
+
+        async function loadDataFromCsv() {
+            // same as before, load reference data from csv
+            const rawData = await loadReferenceData();
+            console.log(' samples   -', rawData.length);
+
+            // loop over each row
+            baseData = rawData.map((d, i) => {
+                // actually including all encoding or decoding instead of just encoding
+                const encodingOrNot = (d['API_Base64_android.util.Base64_decode'] || 0) +
+                                       (d['API_Base64_android.util.Base64_encode'] || 0);
+
+                // base data will be split of raw with objects by family, category
+                return {
+                    base64: encodingOrNot, // both
+                    category: d.Category,
+                    family: d.Family
+                };
+            });
+
+            console.log('chck-base data points:', baseData.length);
+
+        }
+
+        // p5js setup
+        function setup() {
+            let canvas = createCanvas(740, 605);
+
+
+            canvas.parent('canvas-c');
+
+
+            chartWidth = width - 2 * margin;
+            chartHeight = height - 2 * margin;
+
+            // load data
+            loadDataFromCsv();
+        }
+
+
+
+
+
+
+        function draw() {
+            background(250); // white background
+
+
+
+            // title
+            fill(0);
+            textAlign(CENTER, CENTER);
+            textSize(16);
+            text('Instances of Base64 Encoding by Malware Type', width / 2, 30);
+
+            // categories
+            const _cats = ['FileInfector', 'Ransomware'];
+            const evenCatSpacing = chartWidth / (_cats.length + 1);
+
+
+            // max value for Y ceiling
+            let ceiling = baseData.reduce((max, d) =>
+                  d.base64 > max ? d.base64 : max, 0);
+
+
+            // Logarithmic Scaling using log10
+            // need to add 1 to prevent errors (div by0) (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/log10)
+            function applyLog10(value, maxValue) {
+                const logCeiling = Math.log10(maxValue + 1);
+                const mappedValue = Math.log10(value + 1);
+                return map(mappedValue, 0, logCeiling, height - margin, margin); // consider margin
+            }
+
+
+
+            // add both axes
+            stroke(0);
+            strokeWeight(2);
+            line(margin, height - margin, width - margin, height - margin); // x
+            line(margin, margin, margin, height - margin); // y
+
+            // y axis grid label values smaller
+            stroke(200);
+            strokeWeight(1);
+            fill(0);
+            textAlign(RIGHT, CENTER);
+            textSize(12);
+
+            // logarithmic ticks -- powers of 10
+            let logTicks =   [0, 1, 10, 100, 1000];
+
+
+            //////////////////////////////
+            // draw ticks using log scale
+            for (let tickVal of logTicks) {
+
+                const lMax = Math.log10(ceiling + 1);
+                const lVal = Math.log10(tickVal + 1); // fails w/o +1
+
+                let yPos = map(lVal, 0, lMax, height - margin, margin);
+
+                line(margin, yPos, width - margin, yPos);
+                noStroke();
+                text(tickVal, margin - 10, yPos);
+                stroke(180);
+
+            }
+
+            // x category labels (fileinfector & ransomeware)
+            fill(0);
+            noStroke();
+            textAlign(CENTER, TOP);
+            textSize(14);
+
+            // evenly space text on x axis
+            for (let i = 0; i < _cats.length; i++) {
+                const x = margin + (i + 1) * evenCatSpacing;
+                text(_cats[i], x, height - margin + 10);
+            }
+
+            // y axis title (using example from https://p5js.org/tutorials/coordinates-and-transformations/
+            push(); // save
+            translate(22, height / 2); // move
+            rotate(-PI / 2); // make vertical
+            textAlign(CENTER, CENTER);
+            textSize(13);
+            text('Instances of Encoding (Log 10 Based)', 0, 0);
+            pop(); // restore state of viz
+
+            //--------------------
+
+            randomSeed(52); // seed for  jittering dots (looks nicer based on example)
+
+            // dots with jitter
+            for (let i = 0; i < baseData.length; i++) {
+                const idxOfCat = _cats.indexOf(baseData[i].category);
+                const xLoc = margin + (idxOfCat + 1) * evenCatSpacing;
+
+                // calc jitter (using https://www.geeksforgeeks.org/javascript/p5-js-randomseed-function/)
+                const jitter = (random() - 0.5) * (evenCatSpacing * 0.8); // 80% of width
+                const xPosition = xLoc + jitter; // plus offset horizontally
+                const yPosition = applyLog10(baseData[i].base64, ceiling);
+
+                // determine color by category
+                let catColor;
+                if (baseData[i].category === 'Ransomware') {
+                    catColor = [20, 198, 190]; // turquise
+                } else {
+                    catColor = [170, 100, 250]; // purple for file-infector
+                }
+
+
+                // apply distinct colored dot for aesthic appeal
+                fill(catColor[0], catColor[1], catColor[2], 140);
+                stroke(catColor[0] - 40, catColor[1] - 40, catColor[2] - 40, 182); // setting opacity to 180 for semi-transparent look
+                strokeWeight(1);
+
+                circle(xPosition, yPosition, dotRadius * 2.5);
+
+            }
+
+        }
+
+
+
+    </script>
+
+    <br><br>
+
+
+
+
+    <img src="dot-plot-tableau.png">
+</body>
+</html>
+
+
