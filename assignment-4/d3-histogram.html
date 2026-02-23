@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+
+
+    
+    <!-- data is from https://www.unb.ca/cic/datasets/andmal2020.html -->
+
+    <meta charset="UTF-8">
+    <title>Ransomware: Network Bytes Received </title>
+    <!-- need to import d3] -->
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    
+</head>
+<!-- // -->
+<body>
+
+<!-- CITATION: Starting from in-class example: https://edstem.org/us/courses/91852/discussion/7699257 -->
+<div id="chart-container"></div>
+
+
+
+
+
+
+<script>
+
+    // Set up the SVG container
+    const svgWidth  = 600;
+    const svgHeight = 400;
+    const margin = { top: 56, right: 22, bottom: 54, left: 60 };
+
+    
+    // get real width and height
+    const width  = svgWidth  - margin.left - margin.right;
+    //
+    const height = svgHeight - margin.top  - margin.bottom;
+
+    // add svg object
+    const svg = d3.select("#chart-container")
+        .append("svg")
+        .attr("width", svgWidth)
+        .attr("height", svgHeight);
+
+    // adding group
+    const chart = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // chart title - network bytes
+    svg.append("text")
+        .attr("x", svgWidth / 2)
+        .attr("y", margin.top / 2)
+        .attr("text-anchor", "middle")
+        .attr("dominant-baseline", "middle")
+        .style("font-size", "17px")
+        .style("font-weight", "bold")
+        .text("Network  Bytes Received    ");
+
+    // xaxis 
+    svg.append("text")
+        .attr("x", margin.left + width / 2)
+        .attr("y", svgHeight - 9)
+        .attr("text-anchor", "middle")
+        .style("font-size", "13px")
+        .text("Network Bytes Received");
+
+    
+    // yaxis 
+    svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("x", -(margin.top + height / 2))
+        .attr("y", 19)
+        .attr("text-anchor", "middle")
+        .style("font-size", "13px")
+        .text("Sample Count");
+
+    
+    
+    // CITATION: d3.csv() :: https://d3js.org/d3-fetch#csv async 
+    d3.csv("summary-histogram-chart.csv").then(function(rawHistInputData) {
+        console.log(" row count:  ", rawHistInputData.length, "\n first row data:", rawHistInputData[0]);
+
+        // convert network_received_bytes from string to number
+        // TODO need to filter out 0 rows because the volume is making the other bars look like 0, or log scale.
+        rawHistInputData.forEach(row => row.network_received_bytes = +row.network_received_bytes);
+
+
+        // filter out zerobyte rows s
+        const excludeZeroBinCount = rawHistInputData.filter(d => d.network_received_bytes > 0); //
+
+        // using scaleLInear same as class ex - maybe do log later
+        const scaleX = d3.scaleLinear()
+            .domain([0, d3.max(excludeZeroBinCount, d => d.network_received_bytes)])
+            .nice() //
+            .range([0, width]);
+
+        // referencx: d3.bin() split into buckets : : https://d3js.org/d3-array/bin
+        // CITATION: gallery pattern - thresholds from scale ticks so bin edges align with axis labels
+        // https://d3-graph-gallery.com/graph/histogram_basic.html
+        const histogram = d3.bin()
+            .value(d => d.network_received_bytes)
+            .domain(scaleX.domain()) // basically input domain is the histogram range
+            .thresholds(scaleX.ticks(8));  // d3 will probably not mathc this anyway
+
+        // reference: https://d3-graph-gallery.com/graph/histogram_basic.html
+        const histogramObj = histogram(excludeZeroBinCount);
+
+
+
+        // --------------------------------------------------------------
+        const scaleY = d3.scaleLinear()
+            .domain([0, d3.max(histogramObj, bin => bin.length)]) // leverage bin lenght on object directly
+            .nice().range([height, 0]);
+
+        // axis location and ticks
+        chart.append("g").attr("class", "axis axis-x").attr("transform", `translate(0, ${height})`).call(d3.axisBottom(scaleX).ticks(5));
+        chart.append("g").attr("class", "axis axis-y").call(d3.axisLeft(scaleY).ticks(12));
+
+        // render res
+        chart.selectAll("rect")
+            .data(histogramObj) // pass in full object like in example (above)
+            .enter() //
+            .append("rect") // add columns
+            .attr("x", bin => scaleX(bin.x0) + 1)
+            .attr("y", bin => scaleY(bin.length))
+            .attr("width", bin => scaleX(bin.x1) - scaleX(bin.x0) - 1)
+            .attr("height", bin => height - scaleY(bin.length)).attr("fill", "#00ffb6");
+    });
+
+
+</script>
+
+</body>
+
+
+
+</html>
+
