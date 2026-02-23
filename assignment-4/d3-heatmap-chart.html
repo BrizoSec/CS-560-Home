@@ -57,7 +57,7 @@
         .attr("y", margin.top / 2)
         .attr("text-anchor", "middle")
         .attr("dominant-baseline", "middle")
-        .style("font-size", "17px")
+        .style("font-size", "23px")
         .style("font-weight", "bold")
         .text("Avg API Activity by Ransomware family   ");
 
@@ -66,7 +66,7 @@
         .attr("x", margin.left + width / 2)
         .attr("y", svgHeight - 9)
         .attr("text-anchor", "middle")
-        .style("font-size", "13px")
+        .style("font-size", "17px")
         .text("Ransomware Family");
 
     // y axis label
@@ -82,14 +82,15 @@
     // CITATION: d3.csv() :: https://d3js.org/d3-fetch#csv
     d3.csv("heatmap-data.csv").then(function(inputData) {
 
-        console.log("Csvrow count:", inputData.length, "\t first :", inputData[0]);
+        // console.log("Csvrow count:", inputData.length, "\t first :", inputData[0]);
+
 
         // cast    from string to number
-        inputData.forEach(row => row.avg_calls = +row.avg_calls);
+        inputData.forEach(row => row.averageApiCallCounter = +row.averageApiCallCounter);
 
         // group and get keys which will be the indiv categories (keymap)
-        const cats     = Array.from(d3.group(inputData, d => d.api_category).keys());
-        const fams = Array.from(d3.group(inputData, d => d.family).keys());
+        const cats     = Array.from(d3.group(inputData, r => r.api_category).keys());
+        const fams = Array.from(d3.group(inputData, rw => rw.family).keys());
 
         // CITATION: d3.scaleBand()  https://d3js.org/d3-scale#scaleBand
         const scaleX = d3.scaleBand()
@@ -100,7 +101,7 @@
         const scaleY = d3.scaleBand()
             .domain(cats) // grouping of category
             .range([0, height])
-            .padding(0.05);
+            .padding(0.06);
 
 
 
@@ -114,11 +115,11 @@
 
 
         // TODO - figure out why min needs to be 1, failing on 0
-        // console.log("debuging: " + d3.min(inputData, rowData => rowData.avg_calls))
+        // console.log("debuging: " + d3.min(inputData, rowData => rowData.avgCalls))
         // CITATION: was failing on 0 min, foudn fix in here: https://stackoverflow.com/questions/15163640/use-d3-log-scale-instead-of-linear-scale
         // basically, need to set to 1 for logarithmic
         const cScale = d3.scaleSequentialLog()
-            .domain([1, d3.max(inputData, d => d.avg_calls)])               // need to adjust min to 0, will lose some data if 0
+            .domain([1, d3.max(inputData, d => d.averageApiCallCounter)])               // need to adjust min to 0, will lose some data if 0
             // .interpolator(d3.interpolateViridis);
             .interpolator(d3.interpolateYlOrRd);
 
@@ -138,7 +139,7 @@
 
 
 
-        // CITATION: add all boxes and fill will be the color scale to show weights..
+        // add all boxes and fill will be the color scale to show weights..
         chart.selectAll("rect")
             .data(inputData)
             .enter()
@@ -147,8 +148,9 @@
             .attr("y", d => scaleY(d.api_category))
             .attr("width",  scaleX.bandwidth())
             .attr("height", scaleY.bandwidth())
-            .attr("fill", d => cScale(d.avg_calls));
+            .attr("fill", d => cScale(d.averageApiCallCounter));
     });
+
     //
 
 
@@ -157,3 +159,6 @@
 </body>
 
 </html>
+
+
+
