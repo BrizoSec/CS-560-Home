@@ -26,10 +26,19 @@
         <li><a href="d3-scatter-plot.html">D3  Scatter Plot: Memory Usage by Ransomware family     </a> </li>
 
         <li>   <a href="d3-heatmap-chart.html">D3  Heat Map Chart:   API Activity by Ransomware Family   </a> </li>
+          <li>   <a href="d3-histogram.html">D3 Histogram Chart: Network Byte Received (Total)   </a> </li>
 
 
 
-<!--        //-->
+
+
+<!--    Reference for the histogram: https://d3-graph-gallery.com/graph/histogram_basic.html
+    // set the parameters for the histogram
+                      var histogram = d3.histogram()
+                          .value(function(d) { return d.price; })
+                          .domain(x.domain())
+                          .thresholds(x.ticks(70));
+//-->
 
 
 
@@ -38,6 +47,8 @@
 
   </main>
 </body>
+
+
 
 </html>
 
