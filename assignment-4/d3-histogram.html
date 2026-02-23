@@ -55,17 +55,17 @@
         .attr("y", margin.top / 2)
         .attr("text-anchor", "middle")
         .attr("dominant-baseline", "middle")
-        .style("font-size", "17px")
+        .style("font-size", "24px")
         .style("font-weight", "bold")
-        .text("Network  Bytes Received    ");
+        .text("Histogram of Total Network  Bytes Received    ");
 
     // xaxis 
     svg.append("text")
         .attr("x", margin.left + width / 2)
         .attr("y", svgHeight - 9)
         .attr("text-anchor", "middle")
-        .style("font-size", "13px")
-        .text("Network Bytes Received");
+        .style("font-size", "14px")
+        .text("Total Network Bytes Received");
 
     
     // yaxis 
@@ -74,8 +74,8 @@
         .attr("x", -(margin.top + height / 2))
         .attr("y", 19)
         .attr("text-anchor", "middle")
-        .style("font-size", "13px")
-        .text("Sample Count");
+        .style("font-size", "14px")
+        .text("Number of Instances");
 
     
     
@@ -110,7 +110,7 @@
         const histogram = d3.bin()
             .value(d => d.network_received_bytes)
             .domain(scaleX.domain()) // basically input domain is the histogram range
-            .thresholds(scaleX.ticks(8));  // d3 will probably not mathc this anyway
+            .thresholds(scaleX.ticks(14));  // actually tick count here equetes to bin count,
         // console.log('examine histogram obj:' + histogram(excludeZeroBinCount).toString())
 
         // reference: https://d3-graph-gallery.com/graph/histogram_basic.html
