@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>D3 - Line Chart of Memory Usage for Malware Types  </title>
+
+<!--    d3 import-->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+
+
+        .line {
+            fill: none;
+            stroke-width: 2.2;
+        }
+
+        /*dot selector for hover over*/
+        .dot { cursor: pointer; }
+        .dot:hover { stroke: #18f32a; stroke-width: 1.5; }
+
+
+        /*tool tip */
+        .tooltip {
+            font-size: 14px;
+
+
+            position: absolute;
+            background: rgba(0,0,0,0.78);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 5px;
+
+            pointer-events: none;
+
+            opacity: 0.1;
+            transition: opacity 0.12s ease;
+
+            z-index: 10;
+            line-height: 1.8;
+
+        }
+
+
+
+    </style>
+
+
+<!--///////////-->
+
+
+</head>
+
+<body>
+<!--    starting from in class examplw-->
+    <div id="chart-cont"></div>
+    <div class="tooltip" id="tooltip"></div>
+
+
+
+    <script>
+        const width_init  = 980;
+        const height_init = 540;
+        const margin    = { top: 50, right: 170, bottom: 60, left: 97 };
+
+
+        // consider margins
+        const width_final     = width_init  - margin.left - margin.right;
+        const height_final    = height_init - margin.top  - margin.bottom;
+
+
+
+
+        // add svg content
+        const content = d3.select("#chart-cont")
+            .append("svg").attr("height", height_init)
+            //
+            .attr("width",  width_init);
+
+
+        const chartContent = content.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+        const tooltip = d3.select("#tooltip");
+
+        // labels
+        content.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -(margin.top + height_final / 2))
+            .attr("y", 20)
+            .attr("text-anchor", "middle")
+            .style("font-size", "13px")
+            .text("Total Memory in KBs");
+
+
+
+
+        content.append("text")
+            .attr("x", margin.left + width_final / 2)
+            .attr("y", height_init - 10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "13px")
+            .text("Index of Malware Sample (Chronological)");
+
+
+
+
+        //add title
+        content.append("text")
+            .attr("x", margin.left + width_final / 2)
+            .attr("y", margin.top / 2)
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "middle")
+            .style("font-size", "16px")
+            .style("font-weight", "bold")
+            .text("FileInfector Malware:  Memory Usage per Sample by Family  ");
+
+        // use separate colors for each family
+        const colorBreakout = {
+            "commplat":  "rgba(24,159,9,0.84)",
+            "tachi":     "#0e269b",
+            "leech":     "#af1012",
+            "gudex":     "#ffcf00",
+            "<unknown>": "#b500ff"
+        };
+
+        // class exmaple
+        d3.csv("FileInfector_Malware_Samples.csv").then(function(inputData) {
+            inputData.forEach(sample => {sample.Memory_Total = +sample.Memory_Total;});
+            console.log("row count: " + inputData.length + "     ", inputData[0]);
+
+            // group by Family
+            const familyGrouping = d3.group(inputData, rw => rw.Family);
+            const groupedData = [];
+
+
+
+            // now we want to group up the memory for each familiy and keep track of the sequence so it can be plotted on the line
+            familyGrouping.forEach((rows, family) => {
+                const sampleData = rows.map((d, i) => ({
+                    sampleIndex:    i + 1,
+                    Memory_Total: d.Memory_Total,
+                    family:         family
+                }));
+
+
+
+                // push point set onto the applicable family grouping
+                groupedData.push({ family, dataEntries: sampleData });
+            });
+
+
+
+
+
+
+
+            /* needed to sort by strings to get the grouping ordered
+             citation = https://stackoverflow.com/questions/1129216/sort-array-of-objects-by-string-property-value
+             */
+            groupedData.sort((a, b) => a.family.localeCompare(b.family));
+
+
+
+            // limit to first 25 samples
+            const xScale = d3.scaleLinear()
+                .domain([1, 25]) // hard coding 25 for visual aesthetic
+                .range([0, width_final]);
+
+
+
+
+            // sum up memory across the board
+            const memoryTotal = [];
+
+            // for each grouped data, sum the memory for each point
+            groupedData.forEach(function(series) {
+                series.dataEntries.forEach(function(point) {
+
+                    // only first 25 for ease
+                    if (point.sampleIndex <= 25) {
+
+                        memoryTotal.push(point.Memory_Total);
+                    }
+                });
+            });
+
+
+
+
+
+            const yScale = d3.scaleLinear()
+                .domain([0, d3.max(memoryTotal)]).range([height_final, 0]);
+
+            // add axis
+
+            chartContent.append("g")
+                .attr("transform", `translate(0,${height_final})`)
+                .call(d3.axisBottom(xScale).ticks(12).tickFormat(d3.format("d")));
+            chartContent.append("g") // yaxis
+                .call(d3.axisLeft(yScale).ticks(10).tickFormat(d3.format(",.0f")));
+
+            // create line scaled with dynamic maxes
+            const lineSetup = d3.line()
+                .x(dataPoint => xScale(dataPoint.sampleIndex))  // form class example
+                .y(d => yScale(d.Memory_Total));
+
+            // create lines and points
+            groupedData.forEach(s => {
+                const _col = colorBreakout[s.family] || "#18f32a";
+                const filteredDataList = s.dataEntries.filter(p => p.sampleIndex <= 25);
+
+                // Line creation
+                chartContent.append("path")
+                    .datum(filteredDataList)
+                    .attr("class", "line")
+                    .attr("stroke", _col)
+                    .attr("d", lineSetup);
+
+                // set each dot on the line
+                chartContent.append("g")
+                    .selectAll("circle")
+                    .data(filteredDataList).enter()
+                    .append("circle")
+
+                    .attr("class", "dot") // set class
+                    .attr("cx", d => xScale(d.sampleIndex))
+                    .attr("cy", d => yScale(d.Memory_Total))
+                    .attr("r", 3.7)
+
+                    .attr("fill", _col)
+
+                    .attr("stroke", "#fff")
+
+                    .attr("stroke-width", 0.8)
+
+                    // tooltip mouseover info reference
+
+
+                    // https://stackoverflow.com/questions/16256454/d3-js-position-tooltips-using-element-position-not-mouse-position
+                    .on("mouseover", function(event, d) {
+                        d3.select(this).attr("r", 6);
+                        tooltip.style("opacity", 1)
+                            .style("left", (event.pageX + 15) + "px")
+                            .style("top",  (event.pageY - 35) + "px").html(`Family: ${d.family}\nIdx #${d.sampleIndex}`);
+                    })
+                    .on("mousemove", function(event) {
+                        tooltip
+                            .style("left", (event.pageX + 13) + "px").style("top",  (event.pageY - 35) + "px");})
+                    .on("mouseout", function() {
+                        tooltip.style("opacity", 0.1);});
+            });
+
+            // add legend
+            const legendG = content.append("g")
+                .attr("transform",
+                      `translate(${margin.left + width_final + 16}, ${margin.top + 10})`);
+
+
+
+
+            // legend title
+            legendG.append("text")
+                .attr("y", -8)
+                .style("font-size", "13px")
+                .style("font-weight", "bold")
+                .text("Infector Type:");
+
+
+
+            //
+            groupedData.forEach((s, i) => {
+                const legendFamColor = colorBreakout[s.family] || "#999";
+
+                const row = legendG.append("g")
+                    .attr("class", "legend-item")
+                    .attr("transform", `translate(0, ${i * 21})`); // add space between rows ------------
+
+
+
+
+
+
+
+                row.append("text")
+                    .attr("x", 28).attr("y", 4)
+                    .text(s.family);
+
+
+
+
+
+                row.append("line")
+                    .attr("x1", 0).attr("x2", 22)
+                    .attr("y1", 0).attr("y2", 0)
+                    .attr("stroke", legendFamColor)
+                    .attr("stroke-width", 2.5);
+
+
+            });
+        });
+
+
+
+
+    </script>
+</body>
+
+</html>
+
+
+
