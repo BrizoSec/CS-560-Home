@@ -21,7 +21,7 @@
         /*using tooltip from class example*/
         .tooltip {
             position: absolute;
-            background: rgb(163, 243, 24);
+            background: rgb(17, 231, 169);
             color: #050505;
             padding: 9px 14px;
             border-radius: 5px;
@@ -40,7 +40,7 @@
         .bubble {
             stroke: #000000;
             stroke-width: 0.8;
-            opacity: 0.80;
+            opacity: 0.810;
             cursor: pointer;
         }
 
@@ -91,7 +91,7 @@
 
             .attr("dominant-baseline", "middle")
             .style("font-size", "17px")
-            // .style("font-weight", "bold")
+
             .text("FileInfector Analysis: Memory vs. Network Act. by Malware Families  ");
 
         // labels x and y
@@ -162,6 +162,9 @@
             _chart.append("g") // y
                 .call(d3.axisLeft(scaleY).ticks(7).tickFormat(d3.format(",.0f")));
 
+            // sort to get small bubbles drawn later and be on top
+            chart_data.sort((a, b) => b.LogTotal - a.LogTotal);
+
             // add bubbles to cfhart
             _chart.selectAll(".bubble")
                 .data(chart_data).enter()
@@ -175,7 +178,7 @@
 
                 // tooltip for A+
                 .on("mouseover", function(event, rw) {
-                    tooltip.style("opacity", .9)
+                    tooltip.style("opacity", 0.6)
 
                         .style("left", (event.pageX + 12) + "px") // hardcoding pixel adjustment
                         .style("top",  (event.pageY - 30) + "px")
