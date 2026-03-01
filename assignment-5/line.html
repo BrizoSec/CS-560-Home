@@ -259,6 +259,7 @@
                         tooltip
                             .style("left", (event.pageX + 13) + "px").style("top",  (event.pageY - 35) + "px");})
                     .on("mouseout", function() {
+                        d3.select(this).attr("r", 3.7);
                         tooltip.style("opacity", 0);});
             });
 
