@@ -11,16 +11,18 @@
     <title>D3 Bubble Chart of Memory Vs Network Activity for File Infector Families </title>
 
     <script src="https://d3js.org/d3.v7.min.js"></script>
+
+<!--    using d3 legend per class references-->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
 
 
     <style>
-        body { font-family: sans-serif; }
 
+        /*using tooltip from class example*/
         .tooltip {
             position: absolute;
-            background: rgba(0,0,0,0.79);
-            color: #fff;
+            background: rgb(163, 243, 24);
+            color: #050505;
             padding: 9px 14px;
             border-radius: 5px;
             font-size: 14px;
@@ -36,18 +38,12 @@
 
         /*bubble class formatting*/
         .bubble {
-            stroke: #fff;
+            stroke: #000000;
             stroke-width: 0.8;
             opacity: 0.80;
             cursor: pointer;
         }
 
-        /*class for hover highiligtng*/
-        .bubble:hover {
-            stroke: #333;
-            stroke-width: 1.5;
-            opacity: 1;
-        }
 
 
     </style>
@@ -56,6 +52,169 @@
 <body>
     <div id="chart-c"></div>
     <div class="tooltip" id="tooltip"></div>
+
+
+
+
+
+
+
+ <script>
+     const marg    = { top: 60, right: 250, bottom: 70, left: 240 };
+        const wid  = 1082;
+        const ht = 660;
+
+
+
+        // calc the plot space
+        const final_wid     = wid  - marg.left - marg.right;
+        const final_ht    = ht - marg.top  - marg.bottom;
+
+
+
+        // main svg
+        const added_svg = d3.select("#chart-c")
+            .append("svg")
+            .attr("width",  wid)
+            .attr("height", ht);
+
+
+        const _chart = added_svg.append("g")
+            .attr("transform", `translate(${marg.left},${marg.top})`);
+
+        // adding title
+        added_svg.append("text")
+            .attr("x", marg.left + final_wid / 2)
+            .attr("y", marg.top / 2)
+
+            .attr("text-anchor", "middle")
+
+            .attr("dominant-baseline", "middle")
+            .style("font-size", "17px")
+            // .style("font-weight", "bold")
+            .text("FileInfector Analysis: Memory vs. Network Act. by Malware Families  ");
+
+        // labels x and y
+        added_svg.append("text")
+            .attr("x", marg.left + final_wid / 2)
+            .attr("y", ht - 10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "14px")
+            .text("Total Memory");
+        added_svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -(marg.top + final_ht / 2))
+            .attr("y", 185)
+            .attr("text-anchor", "middle")
+            .style("font-size", "14px")
+            .text("Network Bytes Rx");
+
+        // t
+        const tooltip = d3.select("#tooltip");
+
+
+        // async load from class
+        d3.csv("FileInfector_Malware_Samples.csv").then(function(chart_data) {
+            // get totals
+            chart_data.forEach(d => {
+                d.Memory_Total            = +d.Memory_Total;
+                d.Network_BytesRx    = +d.Network_BytesRx;
+                d.LogTotal      = +d.LogTotal;
+            });
+
+
+
+
+
+
+            // set scales -
+
+            const scaleX = d3.scaleLinear()
+                .domain(d3.extent(chart_data, d => d.Memory_Total)) // input domain
+                .range([0, final_wid]); // output range
+            const scaleY = d3.scaleLinear()
+                .domain([0,     d3.max(chart_data, d => d.Network_BytesRx)])
+                .range([final_ht, 0]);
+            const scaleZ = d3.scaleSqrt() /// setting z dim to radius for circles
+                .domain([0, d3.max(chart_data, rw => rw.LogTotal)])
+                .range([2, 36]);
+
+
+            //
+            const fams = [...new Set(chart_data.map(d => d.Family))].sort();
+            const scaleForColor = d3.scaleOrdinal().domain(fams)
+                .range(["#1571d3", "#18f32a", "#790de0", "#e30942", "#bab0ac"]);
+
+            // set axis
+            _chart.append("g")
+                .attr("transform", `translate(0,${final_ht})`)
+                .call(   d3.axisBottom(scaleX).ticks(7).tickFormat(d3.format(",.0f")));
+            _chart.append("g") // y
+                .call(d3.axisLeft(scaleY).ticks(7).tickFormat(d3.format(",.0f")));
+
+            // add bubbles to cfhart
+            _chart.selectAll(".bubble")
+                .data(chart_data).enter()
+                .append("circle")
+                .attr("class", "bubble")
+                .attr("cx", rw =>   scaleX(rw.Memory_Total))
+                .attr("cy", rw => scaleY(rw.Network_BytesRx))
+                .attr("r",  rwd => scaleZ(rwd.LogTotal))
+                .attr("fill", d => scaleForColor(d.Family))
+
+
+                // tooltip for A+
+                .on("mouseover", function(event, rw) {
+                    tooltip.style("opacity", .9)
+
+                        .style("left", (event.pageX + 12) + "px") // hardcoding pixel adjustment
+                        .style("top",  (event.pageY - 30) + "px")
+
+
+                        // refernce: xyz
+                        .html(`Malware Family_ ${rw.Family}  <br>
+                                             Memory_ ${d3.format(",.0f") (rw.Memory_Total)} KiloBytes`);
+                })
+
+                // citation - mouse event from last assignment
+                // /////////////////////////////
+                // .on("mousemove", function(event) {
+                //     tooltip.style("left", (event.pageX + 12) + "px").style("top",  (event.pageY - 28) + "px");
+                // })
+                .on("mousemove", function(event) {
+                    tooltip
+                        .style("left", (event.pageX + 14) + "px")
+                        .style("top",  (event.pageY - 33) + "px");
+                })
+                // same
+                .on("mouseout", function() {tooltip.style("opacity", 0);});
+
+            // using reference: https://d3-legend.susielu.com/ -
+            const leg = d3.legendColor().scale(scaleForColor).title("Mal Family");
+
+            added_svg.append("g").attr("class", "legendColor")
+                .attr("transform", `translate(${marg.left + final_wid + 60}, ${marg.top})`) // top left
+                .call(leg);
+
+            // cite: https://d3-legend.susielu.com/#size
+            const legScale = d3.scaleSqrt().domain([0, d3.max(chart_data, dataPoint => dataPoint.LogTotal)])
+                .range([2, 48]);
+
+            const legSizing = d3.legendSize().scale(legScale).shape("circle")
+                .shapePadding(12)
+                .cells([2000, 6000, 10000, 16000])
+                .labelFormat(d3.format(",.0f"))
+                .title("Log Size (Total) ");
+
+            // size legend on the left side
+            added_svg.append("g")
+                .attr("class", "legendSize")
+                .attr("transform",
+                      `translate(8, ${marg.top + 20})`).call(legSizing);
+        });
+
+    </script>
+
 
 
 </body>
