@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Scatterplot Matrix: Memory vs Network Metrics </title>
+
+<!--    d3 import-->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+</head>
+<body>
+<!--    // starting from in class example: https://edstem.org/us/courses/91852/discussion/7725451-->
+    <svg id="splom"></svg>
+
+    <script>
+        const cellSize   = 150;
+
+        const padding    = 20;
+
+        const legWidth = 141;  //  reserved on the left for the legend
+
+        const dimensions = [
+            "Memory_Total",
+            "Memory_HeapAlloc",
+            "Network_BytesRx"
+        ];
+
+
+        const cLabels = {
+            Memory_Total:     "Memory (KB)",
+            Memory_HeapAlloc: "Heap Allocation (KB)",
+            Network_BytesRx:  "Net Rx (B)"
+        };
+
+
+
+        const malwareFamilyColoring = {
+            "commplat":  "#ff1d00",
+
+            "tachi":     "#864e17",
+            "leech":     "#af14da",
+
+            "gudex":     "#335410",
+            "<unknown>": "#0ef6c4"
+        };
+
+        // class
+        const n    = dimensions.length;
+        const size = n * cellSize;
+
+        // ref: autoType auto-parses numeric columns
+        //                  https://d3js.org/d3-dsv#autoType
+        d3.csv("FileInfector_Malware_Samples.csv", d3.autoType).then(function(data) {
+            // log row count
+            console.log(" data: " + data.length + " rows", data[0]);
+
+            const base = d3.select("#splom")
+                .attr("width",  legWidth + size + padding)
+                .attr("height", size + padding + 40);
+
+            // grid group shifted right to make room for     legend
+            const svg = base.append("g").attr("transform", `translate(${legWidth + padding},${padding})`);
+
+            // title detailed
+            svg.append("text")
+                .attr("x", size / 2)
+                .attr("y", -4)
+                .attr("text-anchor", "middle")
+                .style("font-size", "15px")
+                .style("font-weight", "bold")
+                .text("FileInfector: SPLOM: Memory & Network Metrics");
+
+            // linear scale scale per column
+            const scales = {};
+            dimensions.forEach(function(col) {
+                scales[col] = d3.scaleLinear().domain(d3.extent(data, d => d[col])).range([4, cellSize - 4]);});
+
+
+
+
+
+
+
+
+
+            //////////////////////////////////////
+            // Draw one cell per (row, col) pair
+            dimensions.forEach(function(yCol, row) {
+
+                dimensions.forEach(function(xCol, col) {
+
+                    //  padding to class provided example
+                    const g = svg.append("g").attr("transform", `translate(${col * cellSize},${row * cellSize + padding})`);
+
+                    // Cell border
+                    g.append("rect")
+                        .attr("width",  cellSize)
+                        .attr("height", cellSize)
+                        .attr("fill", "none")
+                        .attr("stroke", "#aaa");
+
+
+
+
+                    if (row === col) {
+                        // Diagonal - show label only
+                        g.append("text")
+                            .attr("x", cellSize / 2)
+                            .attr("y", cellSize / 2)
+                            .attr("text-anchor", "middle")
+                            .attr("dominant-baseline", "middle")
+                            .attr("font-size", "12px")
+                            .attr("font-weight", "bold").text(cLabels[xCol]);
+
+                    } else {
+                        // Off-diagonal scatter plot. join() pattern for enter/update/exit
+                        // https://d3js.org/d3-selection/joining
+                        // https://stackoverflow.com/questions/11357409/d3-js-scatterplot-matrix
+
+
+
+
+
+                        g.selectAll("circle").data(data).join("circle")
+                            .attr("cx", d => scales[xCol](d[xCol]))
+                            .attr("cy", d => scales[yCol](d[yCol]))
+                            .attr("r", 3)
+                            .attr("fill", d => malwareFamilyColoring[d.Family] || "#999")
+                            .attr("opacity", 0.55);
+
+                    }
+                });
+            });
+
+
+
+
+
+
+
+            // Column headers
+            dimensions.forEach(function(col, i) {
+                svg.append("text")
+                    .attr("x", i * cellSize + cellSize / 2)
+                    .attr("y", padding - 6)
+                    .attr("text-anchor", "middle")
+                    .style("font-size", "10px")
+                    .style("fill", "#555")
+
+                    // put column name as attribute
+                    .text(cLabels[col]);
+            });
+
+            // fam color legend on the left side of the SVG
+            const leg = base.append("g").attr("transform", `translate(8, ${padding + 30})`);
+
+            leg.append("text")
+                .attr("y", -8)
+                .style("font-size", "13px")
+                .style("font-weight", "bold").text("Infector Family");
+
+
+
+
+
+
+
+            Object.entries(malwareFamilyColoring).forEach(function([fam, color], i) {
+                const row = leg.append("g") // spacing
+                    .attr("transform", `translate(0, ${i * 22})`);
+
+                row.append("circle") // dot
+                    .attr("cx", 6).attr("cy", 0).attr("r", 6).attr("fill", color);
+
+                row.append("text") // name
+                    .attr("x", 16).attr("y", 4)
+                    .style("font-size", "12px").text(fam);
+            });
+
+        });
+
+    </script>
+
+</body>
+
+
+
+
+
+</html>
+
