@@ -147,7 +147,7 @@
             // ref: https://d3js.org/d3-scale#scaleSqrt
             const scaleZ = d3.scaleSqrt() /// setting z dim to radius for circles
                 .domain([0, d3.max(chart_data, rw => rw.LogTotal)])
-                .range([2, 36]);
+                .range([1, 36]);
 
 
             //
@@ -211,7 +211,7 @@
 
             // cite: https://d3-legend.susielu.com/#size
             const legScale = d3.scaleSqrt().domain([0, d3.max(chart_data, dataPoint => dataPoint.LogTotal)])
-                .range([2, 48]);
+                .range([1, 48]);
 
             const legSizing = d3.legendSize().scale(legScale).shape("circle")
                 .shapePadding(12)
