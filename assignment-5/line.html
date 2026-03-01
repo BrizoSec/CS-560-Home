@@ -2,6 +2,11 @@
 <html lang="en">
 
 
+<!--refernces:-->
+<!--tooltip - https://edstem.org/us/courses/91852/discussion/7700634-->
+<!--css styles https://edstem.org/us/courses/91852/discussion/7699257-->
+
+
 <head>
 
     <meta charset="UTF-8">
@@ -23,7 +28,12 @@
         .dot:hover { stroke: #18f32a; stroke-width: 1.5; }
 
 
-        /*tool tip */
+        /* tooltip CSS — position absolute lets it follow the mouse on the screen
+           pointer-events:none stops it from blocking hover on the dots.
+           opacity - used ot  hide til mouseover     event
+           css - https://formidableforms.com/knowledgebase/css-examples/
+           mouse over: https://stackoverflow.com/questions/10805184/show-data-on-mouseover-with-d3-js */
+        /*TODO - fix issue where after leaving hover over the dots are still enlarged*/
         .tooltip {
             font-size: 14px;
 
@@ -36,8 +46,8 @@
 
             pointer-events: none;
 
-            opacity: 0.1;
-            transition: opacity 0.12s ease;
+            opacity: 0.0;
+            transition: opacity 0.1s ease;
 
             z-index: 10;
             line-height: 1.8;
@@ -249,7 +259,7 @@
                         tooltip
                             .style("left", (event.pageX + 13) + "px").style("top",  (event.pageY - 35) + "px");})
                     .on("mouseout", function() {
-                        tooltip.style("opacity", 0.1);});
+                        tooltip.style("opacity", 0);});
             });
 
             // add legend
