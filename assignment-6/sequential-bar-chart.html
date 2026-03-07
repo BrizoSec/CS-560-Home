@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <title>Sequential Bar Chart of Memory Use</title>
+
+<!--  mandatory imports-->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
+
+
+
+
+
+</head>
+
+<body>
+<!--  <h2 style="text-align: left;">Malware Family Statistics: Memory Use (KB)</h2>-->
+
+  <h2   style="padding-left: 180px;">Malware Family Statistics: Memory Use (KB)</h2>
+
+<!--  <div>-->
+
+
+<!--content-->
+  <div id="chart-content"></div>
+<!--  </div>-->
+
+
+
+  <script>
+    console.log("brk 1: starting scr")
+
+
+    // pre aggr data load
+  d3.csv("avg-memory-by-fam.csv", d3.autoType).then(familyStats => {
+
+
+
+    // set up margins
+    const marg = { top:40, right: 172, bottom: 91, left: 110 };
+    const w = 822 - marg.left -   marg.right;
+    const h = 431 - marg.top     - marg.bottom;
+
+
+    // throw chart on
+    const svg = d3.select("#chart-content").append("svg")
+      .attr("width",  w + marg.left + marg.right)
+      .attr("height", h + marg.top  + marg.bottom).append("g")
+      .attr("transform", `translate(${marg.left},${marg.top})`);
+
+
+    const xScaleBand = d3.scaleBand().domain(familyStats.map(d => d.family)).range([0, w]).padding(0.29);
+
+    const maxValue = d3.max(familyStats, d => d.memory);
+
+
+
+
+    const yScaleLin = d3.scaleLinear().domain([0, maxValue * 1.07]).range([h, 0]);
+
+
+
+
+    // citation: https://d3js.org/d3-scale-chromatic/sequential
+    const colorScale = d3.scaleSequential()
+      .domain([0, maxValue]).interpolator(d3.interpolateReds);
+
+    // background grid
+    // citation: using an example i found on vis society -- https://vis-society.github.io/labs/7/#step-23-adding-horizontal-grid-lines
+    // essentially negative width stretches ticks to make them grid lines
+    svg.append("g").attr("class", "grid")
+      .call(d3.axisLeft(yScaleLin).tickSize(-w).tickFormat(""));
+
+
+
+
+    // Bars
+    svg.selectAll(".bar").data(familyStats).join("rect")
+      .attr("x",      row    => xScaleBand(row.family))
+      .attr("y",      row => yScaleLin(row.memory))
+      .attr("width",    xScaleBand.bandwidth())
+      .attr("height", rw => h - yScaleLin(rw.memory))
+      // key line is the filling using the color scale from above
+            .attr("fill",   r => colorScale(r.memory));
+
+
+
+
+    // x
+    svg.append("g").attr("class", "axis").attr("transform", `translate(0,${h})`)
+      .call(d3.axisBottom(xScaleBand))
+      .selectAll("text")
+          .attr("transform", "rotate(-20)");
+
+
+    // y reduce rows to two digits + k to avoid prior issue with screen space
+    // TODO - reduce numbers so they fit on screen
+    svg.append("g").attr("class", "axis")
+      .call(d3.axisLeft(yScaleLin).ticks(8).tickFormat(row => d3.format(".2s")(row)));
+
+
+
+
+
+    // labels galore
+    svg.append("text")
+      .attr("x", w / 2).attr("y", h + 78)
+      .text("Malware Families");
+
+    svg.append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("x", -h / 2).attr("y", -90).attr("text-anchor", "middle")
+      .text("Average Memory Use (KB)");
+
+    // sequential color legend!
+    const seqColorLeg = d3.legendColor()
+      .cells(6)
+      .scale(colorScale)
+      .title("Average Memory Use").labelFormat(d3.format(".2s"));
+    svg.append("g").attr("class", "legend")
+      .attr("transform", `translate(${w + 20}, 10)`).call(seqColorLeg);
+  });
+  </script>
+</body>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</html>
+
+
+
+
