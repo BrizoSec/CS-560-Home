@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+
+
+
+
+  <title>Scatter with qualitative colors Scale    </title>
+
+<!--  // imports-->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
+
+
+
+
+</head>
+
+<body>
+
+  <h2 style="padding-left: 180px;">Memory against Network Bytes for Malware Families  </h2>
+
+  <div id="chart-content"></div>
+
+
+
+
+  <script>
+    console.log("brk 1: starting scr")
+
+    // pre
+    // filtered to top 4 families (graph was too noisy previoiusly)
+    // citation: https://d3js.org/d3-scale-chromatic/qualitative
+  d3.csv("scatter-memory-net.csv", d3.autoType).then(data => {
+
+
+
+
+      // TODO replace hardcoding with smarter method
+      const fams = ["leech", "masnu", "smsspy", "tachi"];
+
+
+
+
+    const colorsSc = d3.scaleOrdinal()
+      .domain(fams) //input
+      .range(d3.schemeSet2); // 3 yellow was barely legible
+
+
+    const _marg = { top: 43, right: 173, bottom: 83, left: 111 };
+    const w = 822 - _marg.left  - _marg.right;
+    const h = 480 - _marg.top  - _marg.bottom;
+
+
+
+
+
+
+
+
+
+
+
+    const svgCont = d3.select("#chart-content").append("svg")
+      .attr("width",  w + _marg.left + _marg.right)
+      .attr("height", h + _marg.top  + _marg.bottom).append("g")
+      .attr("transform", `translate(${_marg.left},${_marg.top})`);
+
+    const sSc = d3.scaleLinear().domain([0, d3.max(data, r => r.memory)]).range([0, w]);
+
+
+
+
+
+    // need log scale bec the distr is wide and orders of magnitude
+    const yScaleLog = d3.scaleLog()
+      .domain([d3.min(data, r => r.netRecv), d3.max(data, _rw => _rw.netRecv) * 1.4]).range([h, 0]);
+
+    // horizontal grid line
+    // citation: https://vis-society.github.io/labs/7/#step-23-adding-horizontal-grid-lines
+    svgCont.append("g").attr("class", "grid").call(d3.axisLeft(yScaleLog).ticks(4).tickSize(-w).tickFormat(""));
+
+    // keep dots from jump out of range in graph (due to margins
+    // TODO - keep dots from going outside screen
+
+    // TODO:
+    svgCont.append("g")
+      .selectAll("circle").data(data).join("circle")
+        .attr("cx",                 r => sSc(r.memory))
+        .attr("cy",             r => yScaleLog(r.netRecv))
+        .attr("r",              5)
+        .attr("fill",       row => colorsSc(row.family))
+        .attr("opacity",  0.66);
+
+    // x axis
+    svgCont.append("g").attr("transform", `translate(0,${h})`)
+      .call(d3.axisBottom(sSc).ticks(6).tickFormat(d => d3.format(".2s")(d))); // 6 ticks is needed
+
+    // y ax
+    svgCont.append("g").call(d3.axisLeft(yScaleLog).ticks(4, ".2s"));
+
+    // axis lab
+    svgCont.append("text").attr("x", w / 2).attr("y", h + 54).attr("text-anchor", "middle")
+      .text("Total Memory");
+
+
+
+
+
+    svgCont.append("text")
+            // need to be in middle
+      .attr("transform", "rotate(-90)")
+      .attr("x", -h / 2).attr("y", -89).attr("text-anchor", "middle")
+      .text("Network Bytes  (Log 10 Scale)");
+
+
+
+
+
+
+      // qual color leg
+    // citation: https://d3-legend.susielu.com
+    const legend = d3.legendColor()
+      .scale(colorsSc).title("Malware Families");
+
+      svgCont.append("g").attr("class", "legend").attr("transform", `translate(${w + 18}, 10)`).call(legend);
+
+  });
+
+  </script>
+
+
+
+
+
+
+</body>
+
+
+
+
+
+
+</html>
+
+
+
+
+
+
