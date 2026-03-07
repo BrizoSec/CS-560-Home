@@ -1,0 +1,31 @@
+family,metric,value
+commplat,Memory (PSS),0.0236
+commplat,Heap Size,0.2574
+commplat,Net Received,0.014
+commplat,Net Sent,0.0215
+commplat,Logcat Total,0.9562
+commplat,Processes,0.0814
+congur,Memory (PSS),0.029
+congur,Heap Size,0.1772
+congur,Net Received,0.0
+congur,Net Sent,0.0001
+congur,Logcat Total,0.887
+congur,Processes,0.0
+jisut,Memory (PSS),0.1364
+jisut,Heap Size,0.4486
+jisut,Net Received,0.0
+jisut,Net Sent,0.0006
+jisut,Logcat Total,0.4902
+jisut,Processes,0.0983
+slocker,Memory (PSS),0.0
+slocker,Heap Size,0.132
+slocker,Net Received,0.0032
+slocker,Net Sent,0.0063
+slocker,Logcat Total,1.0
+slocker,Processes,0.1424
+smsspy,Memory (PSS),0.1153
+smsspy,Heap Size,0.0
+smsspy,Net Received,0.0183
+smsspy,Net Sent,0.0793
+smsspy,Logcat Total,0.8331
+smsspy,Processes,0.6208

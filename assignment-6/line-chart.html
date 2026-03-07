@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <title>Line Chart with a Qualitative  Scale</title>
+
+<!--  //-->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
+</head>
+
+
+
+
+
+
+
+<!--//-->
+<body>
+  <h2 style="padding-left: 182px;">Behaviorals by Malware Family</h2>
+
+
+
+
+  <div id="chart-content"></div>
+
+
+
+
+  <script>
+    console.log("brk working on line chart ")
+
+    // citations: https://d3js.org/d3-scale-chromatic/qualitative // Dark2 :: ColorBrewer qualitative palette
+  d3.csv("line-profiles.csv", d3.autoType).then(data => {
+
+
+
+
+    // bottom 5 families b avg memory
+    const fams = ["commplat", "congur", "jisut", "slocker", "smsspy"]; // todo - replace
+
+
+
+
+
+
+    const metrics = ["Memory (PSS)", "Heap Size", "Net Received", "Net Sent", "Logcat Total", "Processes"];
+
+    // need to  group rows by family
+    const famGrouping = d3.group(data, row => row.family);
+
+
+
+
+
+    const colorsScale = d3.scaleOrdinal().domain(fams).range(d3.schemePaired);
+
+
+
+
+  //margins
+    const marg = { top: 41, right: 171, bottom: 81, left: 90 };
+    const h = 431  - marg.top  - marg.bottom;
+    const w = 821   - marg.left - marg.right;
+
+
+
+
+
+    // svg content
+    const svgContent = d3.select("#chart-content").append("svg")
+      .attr("width",  w + marg.left + marg.right)
+      .attr("height", h + marg.top  + marg.bottom).append("g")
+      .attr("transform", `translate(${marg.left},${marg.top})`);
+
+
+
+
+
+
+    const xSc = d3.scalePoint()
+      .domain(metrics) // input
+      .range([0, w]).padding(0.26);
+
+    const ySc = d3.scaleLinear().domain([0, 1]).range([h, 0]);
+
+
+
+
+
+    // background grid lines
+    // citation: https://vis-society.github.io/labs/7/#step-23-adding-horizontal-grid-lines
+    svgContent.append("g").attr("class", "grid").call(d3.axisLeft(ySc).tickSize(-w).tickFormat("")); // stretch
+
+
+
+    // ref  D3 Curves Reference  https://d3js.org/d3-shape/curve
+
+    const lineGenerator = d3.line()
+      .x(d => xSc(d.metric))
+      .y(d => ySc(d.value)).curve(d3.curveMonotoneX);
+
+    // TODO: one line + dots
+
+
+
+    famGrouping.forEach((rows, family) => {
+      const familyColor = colorsScale(family);
+
+
+
+
+      svgContent.append("path")
+        .datum(rows)
+
+        .attr("fill",             "none")
+
+        .attr("stroke",           familyColor)
+
+        .attr("stroke-width",     2.6)
+        //
+        .attr("d",                lineGenerator);
+
+
+
+
+      svgContent.selectAll(null).data(rows).join("circle")
+        .attr("cx",           r => xSc(r.metric))
+        .attr("cy",           r => ySc(r.value))
+        .attr("r",            6.1)
+
+        .attr("fill",         familyColor)
+
+
+
+        .attr("stroke-width", 1.4);
+    });
+
+
+
+
+
+
+    // x
+    svgContent.append("g").attr("class", "axis")
+      .attr("transform", `translate(0,${h})`).call(d3.axisBottom(xSc));
+
+    // y axe
+    svgContent.append("g").attr("class", "axis").call(d3.axisLeft(ySc).ticks(8).tickFormat(d3.format(".0%")));
+
+    // lab
+    svgContent.append("text")
+      .attr("x", w / 2).attr("y", h + 55)
+      .text("Behavioral Dimension");
+
+    svgContent.append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("x", -h / 2).attr("y", -68).attr("text-anchor", "middle").text("Comparative Average Value");
+
+    // color legend
+    // citation: https://d3-legend.susielu.com
+
+    const colorLegend = d3.legendColor().scale(colorsScale).title(" Family");
+
+    // set
+    svgContent.append("g").attr("class", "legend")
+      .attr("transform", `translate(${w + 18}, 10)`).call(colorLegend);
+  });
+
+  </script>
+
+</body>
+
+</html>
+
+
+
+
+
+
