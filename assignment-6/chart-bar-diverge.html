@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <title>Diverging Bar Chart </title>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
+
+
+</head>
+
+<body>
+  <h2 style="padding-left: 180px;">Network Traffic Deviation by Malware Type  </h2>
+
+
+<!--  appended to for conrent-->
+  <div id="chart-content">
+
+  </div>
+
+
+
+
+
+
+  <script>
+    // console.log("brk 2: starting scr")
+
+    // async load
+
+  d3.csv("malware-fam-dev-net-recvd.csv", d3.autoType).then(withDev => {
+
+
+
+
+
+  ///////////
+    const _margin = { top: 32, right: 180, bottom: 92, left: 135 };
+    const _w = 822 -    _margin.left - _margin.right;
+
+    const _h = 430 -   _margin.top  -   _margin.bottom;
+
+
+
+
+    /////////// chart content
+    const svg = d3.select("#chart-content").append("svg")
+      .attr("width",  _w + _margin.left + _margin.right)
+      .attr("height", _h + _margin.top  + _margin.bottom)
+      .append("g")
+      .attr("transform", `translate(${_margin.left},${_margin.top})`);
+
+
+
+
+    const scaleBandForXAxis = d3.scaleBand()
+      .domain(withDev.map(d => d.family)).range([0, _w]).padding(0.22);
+
+
+
+
+
+     // max used for input domain
+
+    const _max = d3.max(withDev, row => Math.abs(row.deviation));
+
+
+    const yScale = d3.scaleLinear().domain([-_max, _max * 1]).range([_h, 0]);
+
+    //        citation: https://d3js.org/d3-scale-chromatic/diverging
+    const colorScale = d3.scaleDiverging()
+      .domain([-_max, 0, _max]).interpolator(d3.interpolateRdYlGn);
+    // citation: https://vis-society.github.io/labs/7/#step-23-adding-horizontal-grid-lines
+    svg.append("g").attr("class", "grid")
+      .call(d3.axisLeft(yScale).tickSize(-_w).tickFormat("")); // stretch across
+
+    //
+
+    // bars
+    svg.selectAll(".bar").data(withDev).join("rect")
+      .attr("x",      rw => scaleBandForXAxis(rw.family))
+            // positive deviations should go up and neg goes down -
+      .attr("y",      rw => rw.deviation >= 0 ? yScale(rw.deviation) : yScale(0))
+      .attr("width",  scaleBandForXAxis.bandwidth())
+      .attr("height", d => Math.abs(yScale(d.deviation) - yScale(0))).attr("fill",   d => colorScale(d.deviation));
+
+
+
+    //x
+    svg.append("g")
+      .attr("transform", `translate(0,${_h})`)
+      .call(d3.axisBottom(scaleBandForXAxis))
+      .selectAll("text")
+        .attr("transform", "rotate(-28)")
+        .attr("dy", "0.65em");
+
+    //
+    svg.append("g").attr("class", "axis")
+      .call(d3.axisLeft(yScale).ticks(8).tickFormat(d => d3.format(".2s")(d))); // shorten values
+
+    // TODO would be nice to have the column values in a later version.
+
+    // labels
+    svg.append("text").attr("x", _w / 2).attr("y", _h + 59).text("Malware Family");
+
+    svg.append("text").attr("class", "axis-label")
+      .attr("transform", "rotate(-90)")
+      .attr("x", -_h / 2).attr("y", -112)
+            .attr("text-anchor", "middle") // need to put in middle
+      .text("Deviation Off Avg Network Bytes Received ");
+
+    // need to diverge (sequential scale with vals)
+    const _legendScale = d3.scaleSequential().domain([-_max, _max]).interpolator(d3.interpolateRdYlGn);
+
+
+
+    // legend config
+    const leg = d3.legendColor()
+      .cells(7)
+      .scale(_legendScale)
+      .title("Deviation in Bytes").labelFormat(d3.format(".2s"));
+
+
+
+
+
+
+    svg.append("g").attr("class", "legend")
+      .attr("transform", `translate(${_w + 18}, 10)`).call(leg);
+  });
+
+
+  </script>
+</body>
+</html>
