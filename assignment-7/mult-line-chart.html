@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+  <title>Multiple Line Chart on Cyber Attacks               </title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+
+<!--  needed libs-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
+
+
+
+
+
+
+  <style>
+    /* need to make y axis tick marks dashed b/c hard to see if not */
+    .grid line { stroke: #838180;     stroke-dasharray: 3,2;  }
+  </style>
+
+
+
+
+
+</head>
+
+<body>
+<!--  probably not best to hard code padding but for now its ok-->
+  <h2 style="padding-left: 386px;">Rolling Weekly Avg of Cyber Attacks by Type  </h2>
+
+  <div id="chart-con"></div>
+
+
+  <script>
+    // here are some of the articles i checked during the building of this chart, very useful:
+    // c: https://d3js.org/d3-scale-chromatic/qualitative  palette
+    // c: https://d3-legend.susielu.com from lecture
+
+    // c: https://en.wikipedia.org/wiki/Feature_scaling#Rescaling_(min-max_normalization)
+    // cite https://vis-society.github.io/labs/7/#step-23-adding-horizontal-grid-lines
+
+    // column keys from file
+    const keys   = ["recon", "login", "exploit", "botnet"];
+    const lbls = ["Recon Scanning", "Login Attempts", "Exploit Attempts", "Botnet Intrusion"];
+
+
+
+
+
+
+    // pre-processed file already has weekly average
+
+    d3.csv("cyber-attacks-summarized.csv", row => ({
+
+      time:    new Date(row.date),
+      recon:   +row.recon,
+      login:   +row.login,
+      exploit: +row.exploit,
+      botnet:  +row.botnet
+
+    })).then(bkts => {
+
+
+
+
+      /////////////
+      // console.log("bkts:", bkts)
+
+
+
+
+
+
+      // using tableau10 palette per class
+      const cScale = d3.scaleOrdinal()
+        .domain(lbls).range(d3.schemeTableau10);
+
+
+
+      // add space in left margin for legend ....
+
+      const margin = { top: 42, right: 22, bottom: 71, left: 260 };
+      const hgt    = 462 - margin.top  - margin.bottom;
+      const wdth    = 1065 - margin.left - margin.right;
+
+
+
+
+
+      // add svg content
+      const svg = d3.select("#chart-con").append("svg")
+
+
+        .attr("width",  wdth + margin.left + margin.right)
+        .attr("height", hgt + margin.top  + margin.bottom).append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      // x maps dates to horizontally ; y maps values to vertically
+      const xScale = d3.scaleTime()
+        .domain(d3.extent(bkts, d => d.time))
+        .range([0, wdth]);
+
+
+      const yScale = d3.scaleLinear()
+        .domain([0, 1]).range([hgt, 0]);
+
+
+
+
+
+      // like assignment 4 :: drawn full-width ticks
+      svg.append("g").attr("class", "grid")
+        .call(d3.axisLeft(yScale).tickSize(-wdth).tickFormat(""));
+
+
+
+      // use lien generator to creat lines and plot
+      keys.forEach((key, idx) => {
+
+        const lGen = d3.line()
+          .defined(r => !isNaN(r[key])) // adding (from research) this b/c empty data points causing issues
+          .x(d => xScale(d.time))
+          .y(d => yScale(d[key]))
+          .curve(d3.curveMonotoneX);
+
+        svg.append("path")
+          .datum(bkts)
+          .attr("fill",  "none")
+          .attr("stroke",   cScale(lbls[idx]))
+          .attr("stroke-width", 1.8)
+          .attr("opacity",  0.85)
+          .attr("d",   lGen);
+      });
+      ////////////////////
+
+
+      // x  one tick per month like alark stated
+      svg.append("g").attr("class", "axis")
+        .attr("transform", `translate(0,${hgt})`)
+        .call(d3.axisBottom(xScale).ticks(d3.timeMonth.every(1)).tickFormat(d3.timeFormat("%b %Y"))).selectAll("text")
+        .attr("transform", "rotate(-35)") // add rotation for better readability
+        .style("text-anchor", "end");
+
+      // y  8 percent ticks
+      svg.append("g").attr("class", "axis")
+        .call(d3.axisLeft(yScale).ticks(10).tickFormat(d3.format(".0%")));
+
+
+
+
+      //  labels centered on each axis
+      svg.append("text")
+        .attr("x", wdth / 2).attr("y", hgt + 62)
+        .attr("text-anchor", "middle")
+        .style("font-size", "14px").text("Date of Event");
+      svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("x", -hgt / 2).attr("y", -58)
+        .attr("text-anchor", "middle")
+        .style("font-size", "14px")
+        .text("Weekly Avg of Attack Velocity");
+
+
+
+
+
+
+      // TODO: fix some of the hardcoding later
+      // TODO: test full dataset, currenly only week averages
+
+
+
+
+      // color legend per requirements
+      const colorD3Leg = d3.legendColor()
+        .scale(cScale)
+        .title("Category of Attack");
+      svg.append("g").attr("class", "legend")
+        .attr("transform", `translate(${-(margin.left - 10)}, 10)`).call(colorD3Leg);
+    });
+  </script>
+
+</body>
+
+
+
+
+
+
+
+
+
+
+</html>
