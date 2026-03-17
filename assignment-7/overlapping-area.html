@@ -60,7 +60,7 @@
   <div id="tt"></div>
 
 <!-- same citations as multi line charts basically the same    -->
-<!--  // https://d3js.org/d3-scale-chromatic/qualitative  Tableau10  -->
+<!--  // https://d3js.org/d3-scale-chromatic/qualitative  Tableau  -->
 
 <!--    //  https://en.wikipedia.org/wiki/Feature_scaling)-->
 <!--    // https://vis-society.github.io/labs/7/#step-23-adding-horizontal-grid-lines-->
@@ -72,8 +72,8 @@
     console.log("starting script")
 
     // column keys
-    const keys   = ["recon", "login", "exploit", "botnet"];
-    const labels = ["Recon Scanning", "Login Attempts", "Exploit Attempts", "Botnet Intrusion"];
+    const keys   = ["recon","login",  "botnet"];
+    const labels = ["Recon Scanning", "Login Attempts", "Botnet Intrusion"];
 
 
 
@@ -83,14 +83,14 @@
       time:    new Date(ind_row.date), // timestamp for x axis
       recon:   +ind_row.recon,
       login:   +ind_row.login,
-      exploit: +ind_row.exploit,
+      // exploit: +ind_row.exploit,
       botnet:  +ind_row.botnet
     })).then(buckets => {
 
       // set colors per attack type
 
       const typeColorScale = d3.scaleOrdinal()
-        .domain(labels).range(d3.schemeTableau10);
+        .domain(labels).range(d3.schemeDark2); // tab10 not looking so good
 
 
       // set margin to left large so legend can fit nicely

@@ -111,10 +111,10 @@
 
         const xScaleRange = d3.scaleTime().domain(xAxisRange).range([0, w]);
         const yScaleRange = d3.scaleLinear()
-          .domain([0, d3.max(readData, d => d[key]) * 1.05]).range([h, 0]);
+          .domain([0, d3.max(readData, d => d[key]) * 1.06]).range([h, 0]);
 
         // dashed lines fully across
-        g.append("g").attr("class", "grid").call(d3.axisLeft(yScaleRange).tickSize(-w).tickFormat("").ticks(4));
+        g.append("g").attr("class", "grid").call(d3.axisLeft(yScaleRange).tickSize(-w).tickFormat("").ticks(5));
 
 
 
