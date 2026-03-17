@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <title>Overlapping Area Chart: Cyber Attacks by Category         </title>
+
+<!--  nneeded libs-->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
+
+
+  <style>
+    /* need dashed lines otherwsie hard to read*/
+    .grid line { stroke: #939191; stroke-dasharray: 3,3; }
+    /*.grid path { stroke-width: tbd; }*/
+
+
+
+    /* tooltip style ing */
+    #tt {
+
+
+      pointer-events: none;
+
+      background: rgba(221, 217, 217, 0.93);
+
+      border: 1px solid #bc2020;
+      position: absolute;
+      border-radius: 6px;
+
+      padding: 8px 13px;
+      font-size: 11px;
+      line-height: 1.7;
+      display: none;
+      /*adding none will fix box*/
+
+    }
+
+
+
+
+
+
+
+
+  </style>
+
+
+<!--  //////////////////////////////////-->
+</head>
+
+<body>
+  <h2 style="padding-left: 383px;">Overlapping Area Chart of Cyber Attacks    </h2>
+
+  <div id="chart-c"></div>
+  <div id="tt"></div>
+
+<!-- same citations as multi line charts basically the same    -->
+<!--  // https://d3js.org/d3-scale-chromatic/qualitative  Tableau10  -->
+
+<!--    //  https://en.wikipedia.org/wiki/Feature_scaling)-->
+<!--    // https://vis-society.github.io/labs/7/#step-23-adding-horizontal-grid-lines-->
+
+
+
+  <script>
+    //
+    console.log("starting script")
+
+    // column keys
+    const keys   = ["recon", "login", "exploit", "botnet"];
+    const labels = ["Recon Scanning", "Login Attempts", "Exploit Attempts", "Botnet Intrusion"];
+
+
+
+    // using same data from before but aggregated by date
+    d3.csv("overlapping-area-data.csv", ind_row => ({
+
+      time:    new Date(ind_row.date), // timestamp for x axis
+      recon:   +ind_row.recon,
+      login:   +ind_row.login,
+      exploit: +ind_row.exploit,
+      botnet:  +ind_row.botnet
+    })).then(buckets => {
+
+      // set colors per attack type
+
+      const typeColorScale = d3.scaleOrdinal()
+        .domain(labels).range(d3.schemeTableau10);
+
+
+      // set margin to left large so legend can fit nicely
+      const _margin = { top: 42, right: 21, bottom: 73, left: 262 };
+      const _height    = 462 - _margin.top  - _margin.bottom;
+      const _width    = 1064 - _margin.left - _margin.right;
+
+
+      /////////
+
+
+
+      // build svg content
+      const svg = d3.select("#chart-c").append("svg")
+        .attr("width",  _width + _margin.left + _margin.right)
+        .attr("height", _height + _margin.top  + _margin.bottom).append("g")
+        .attr("transform", `translate(${_margin.left},${_margin.top})`);
+
+      // same as multi line, x x scale horizontal, y vertical
+      const xScaleHor = d3.scaleTime()
+        .domain(d3.extent(buckets, d => d.time))
+        .range([0, _width]);
+      const yScaleVert = d3.scaleLinear()
+        .domain([0, 1]).range([_height, 0]);
+
+
+
+      // set ticks to be drawn full-width ....
+      svg.append("g").attr("class", "grid").call(d3.axisLeft(yScaleVert).tickSize(-_width).tickFormat(""));
+
+
+
+
+      // chalenge here is that larger blocks need to be in back, used this article to do this: https://observablehq.com/@d3/stacked-area-chart/2
+      // put larger in back
+      [...keys].reverse().forEach((key, r) => {
+        const idx     = keys.length - 1 - r;
+
+        const idxColor = typeColorScale(labels[idx]);
+
+
+
+
+        // area generator fills content
+        const aGenerator = d3.area()
+          .defined(d => !isNaN(d[key]))
+          .x(d  => xScaleHor(d.time)).y0(_height)
+          .y1(d => yScaleVert(d[key])).curve(d3.curveMonotoneX);
+
+
+
+
+
+
+        // console.log("checking current key: " + key)
+        // line generator on top edge now
+        const lGenerator = d3.line()
+          .defined(d => !isNaN(d[key]))
+          .x(d  => xScaleHor(d.time))
+          .y(d  => yScaleVert(d[key])).curve(d3.curveMonotoneX);
+        // always need NaN check b/c data is missing on some rows
+        // TODO - filter out NaN directly for easier additions
+
+
+
+
+        // hard set on opacity to see through to back colors
+        svg.append("path")
+          .datum(buckets)
+          .attr("fill", idxColor)
+          .attr("opacity", 0.39).attr("d",   aGenerator);
+
+
+
+        // used https://altair-viz.github.io/gallery/layered_area_chart.html
+      });
+
+
+
+
+
+
+      // x one tick per      month
+      svg.append("g").attr("class", "axis")
+        .attr("transform", `translate(0,${_height})`)
+        .call(d3.axisBottom(xScaleHor).ticks(d3.timeMonth.every(1)).tickFormat(d3.timeFormat("%b %Y"))).selectAll("text")
+        .attr("transform", "rotate(-35)")
+        .style("text-anchor", "end"); // need to keep off the grap[h
+
+
+
+
+      // y axis ticks
+      svg.append("g").attr("class", "axis")
+        .call(d3.axisLeft(yScaleVert).ticks(10).tickFormat(d3.format(".0%")));
+
+
+
+
+      // x and y axis labels centered on each axis
+      svg.append("text")
+        .attr("x", _width / 2).attr("y", _height + 62)
+        .attr("text-anchor", "middle")
+        .style("font-size", "14px")
+        .text("Date");
+
+      svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("x", -_height / 2).attr("y", -58)
+        .attr("text-anchor", "middle")
+        .style("font-size", "14px").text("Percent of Attacks (Normalized) Based Off Max");
+
+      // TODO: the draw order is hardcoded essentially bc of the keys, change that on a future release
+
+
+
+
+      // color legend placed: left margin
+      const colorD3Legend = d3.legendColor()
+        .scale(typeColorScale)
+        .title("Attack Type");
+      svg.append("g").attr("class", "legend")
+        .attr("transform", `translate(${-(_margin.left - 10)}, 10)`)
+        .call(colorD3Legend);
+
+
+
+
+
+
+      // tooltip: find the nearest and print stats
+
+      const dateFmt = d3.timeFormat("%b %d, %Y");
+      const toolTip = d3.select("#tt");
+      const numberFormat  = d3.format(",.3f"); // show 3 decimals
+
+
+      // adding rectangle for mouseover
+      svg.append("rect")
+        .attr("width", _width).attr("height", _height).attr("fill", "none").attr("pointer-events", "all")
+
+              //
+        .on("mousemove", function(event) {
+
+          const [mx] = d3.pointer(event);
+          // d3 should find the closest row
+          const leastRow = d3.least(buckets, r => Math.abs(xScaleHor(r.time) - mx));
+
+
+
+
+          const totalPer = keys.reduce((rv, k) => rv + leastRow[k], 0);
+
+
+          // format tooltip basically
+          toolTip.style("display", "block")
+            .style("left", (event.pageX + 15) + "px")
+            .style("top",  (event.pageY - 29) + "px")
+
+                  // add html to show tootals
+            .html(` <strong>${dateFmt(leastRow.time)} </strong><br> Avg Percent is  ${d3.format(".1%")(totalPer  /  keys.length)}`);
+        })
+
+
+              // set to disappear after hovering off the chart !
+
+        .on("mouseleave",               () => toolTip.style("display", "none"));
+    });
+
+  </script>
+
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
