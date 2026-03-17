@@ -49,8 +49,9 @@
 
   <script>
     // keys and labels
-    const keys   = ["recon", "login", "exploit", "botnet"];
-    const labels = ["Recon Scanning", "Login Attempts", "Exploit Attempts", "Botnet Intrusion"];
+
+    const keys   = ["login", "exploit", "botnet"];
+    const labels = [  "Login Attempts", "Exploit Attempts", "Botnet Intrusion"];
 
 
     // set panels with space for title
@@ -88,7 +89,7 @@
     d3.csv("cyber-attacks-time-series.csv", row => ({
       time:    new Date(row.date),
 
-      recon:   +row.recon,
+      // recon:   +row.recon,
       login:   +row.login,
 
       exploit: +row.exploit,
