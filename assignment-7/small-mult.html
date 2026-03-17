@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <title>Small Multiples: Cyber Attacks By Category</title>
+
+
+<!--  script libs-->
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
+
+
+<!--   references:
+    https://d3-legend.susielu.com
+
+    https://d3js.org/d3-scale-chromatic/qualitative
+
+    https://observablehq.com/@d3/small-multiples
+-->
+
+
+  <style>
+    .grid line { stroke: #bbb; stroke-dasharray: 3,4; }
+
+    .grid path { stroke-width: 0; }
+
+    /*.panel-title { font-size: 13px; font-weight: bold; }*/
+
+  </style>
+
+</head>
+
+
+
+
+<body>
+  <h2 style="padding-left: 220px;">Small Multiples of Cyber Attack Types</h2>
+
+  <div id="chart"></div>
+
+
+
+
+  <script>
+    // keys and labels
+    const keys   = ["recon", "login", "exploit", "botnet"];
+    const labels = ["Recon Scanning", "Login Attempts", "Exploit Attempts", "Botnet Intrusion"];
+
+
+    // set panels with space for title
+    const w   = 211;
+    const h   = 162;
+
+
+
+
+
+    const padding = { top: 29, right: 18, bottom: 53, left: 60 };
+    const legendWid = 186;
+
+    // sizing of svg contents
+    const svgWid    = legendWid +   keys.length * (w + padding.left + padding.right);
+    const svgHeight           = h +     padding.top +  padding.bottom;
+
+
+
+
+    const colorMatchingScale = d3.scaleOrdinal()
+      .domain(labels).range(d3.schemeTableau10);
+
+
+
+
+    // console.log(colorMatchingScale);
+    const svgContent = d3.select("#chart").append("svg")
+      .attr("width",  svgWid)
+      .attr("height", svgHeight);
+
+
+
+  // read in
+    d3.csv("cyber-attacks-time-series.csv", row => ({
+      time:    new Date(row.date),
+
+      recon:   +row.recon,
+      login:   +row.login,
+
+      exploit: +row.exploit,
+      botnet:  +row.botnet
+    })).then(readData => {
+
+
+
+
+      const xAxisRange = d3.extent(readData,   r => r.time); // min and max date timestamp ranges
+
+
+      // loop through each type and plot
+      keys.forEach((key, idx) => {
+
+
+        // x axis adjacent to aone another
+        const xPan = legendWid + idx *    (w + padding.left + padding.right);
+        const g = svgContent.append("g").attr("transform", `translate(${xPan + padding.left}, ${padding.top})`);
+
+        const xScaleRange = d3.scaleTime().domain(xAxisRange).range([0, w]);
+        const yScaleRange = d3.scaleLinear()
+          .domain([0, d3.max(readData, d => d[key]) * 1.05]).range([h, 0]);
+
+        // dashed lines fully across
+        g.append("g").attr("class", "grid").call(d3.axisLeft(yScaleRange).tickSize(-w).tickFormat("").ticks(4));
+
+
+
+
+
+
+
+
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // line
+        g.append("path")
+          .datum(readData)
+          .attr("fill", "none")
+          .attr("stroke",   colorMatchingScale(labels[idx]))
+          .attr("stroke-width",  1.9)
+          .attr("opacity",   0.86)
+          .attr("d",   d3.line()
+            .defined(d => !isNaN(d[key])) // filter
+            .x(d => xScaleRange(d.time))
+            .y(d => yScaleRange(d[key])).curve(d3.curveMonotoneX));
+        // x axis ticks
+        g.append("g").attr("class", "axis")
+          .attr("transform", `translate(0,${h})`)
+          .call(d3.axisBottom(xScaleRange).ticks(d3.timeMonth.every(3)).tickFormat(d3.timeFormat("%b '%y")))
+          .selectAll("text")
+          .attr("transform", "rotate(-45)")
+          .style("text-anchor", "end").attr("dx", "-0.4em").attr("dy", "0.6em");
+
+        // y axis: only on the first panel to make it look a bit nicer, still qualifies for axis labl req
+        if (idx === 0) { // only 1
+          g.append("g").attr("class", "axis")
+            .call(d3.axisLeft(yScaleRange).ticks(4)
+                    // formatting thousands with K and millions with M
+              .tickFormat(itm => itm >= 1e6 ? d3.format(".1f")(itm / 1e6) + "M" : itm >= 1e3 ? d3.format(".0f")(itm / 1e3) + "K" : itm));
+
+
+
+
+          g.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -h / 2).attr("y", -padding.left + 12)
+            .attr("text-anchor", "middle")
+            .style("font-size", "13px")
+            .text("Number of Alerts");
+
+        }
+
+        //  title
+        g.append("text")
+          .attr("class", "panel-title")
+          .attr("x", w / 2).attr("y", -10)
+          .attr("text-anchor", "middle")
+          .attr("fill",  colorMatchingScale(labels[idx]))
+          .text(labels[idx]);
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////
+      });
+
+
+
+
+      // TODO: formatting on K and M is abit odd, maybe change that later
+
+
+
+
+
+      // legend on left side
+      svgContent.append("g")
+        .attr("class", "legend")
+        .attr("transform", `translate(10, ${svgHeight / 2 - 50})`)
+        .call(d3.legendColor()
+          .scale(colorMatchingScale)
+          .title("Attack Bucket").shapeWidth(15));
+    });
+
+  </script>
+
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
