@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+  <title>Karate Club Friends: Adjacency mtrx</title>
+
+  <style>
+
+    body { margin: 0;       background: #fff;  }
+    /*///////////*/
+.cell.empty  { fill: #f9f9f9; }
+    .cell { stroke: #e0e0e0; stroke-width: 0.7; }
+    .cell.filled { fill: #ed6707; }
+
+/*highlighting cross column and row*/
+    .cell.highlight-cross { fill: #e8ca32; }
+
+
+
+    .label { font-size: 12px; fill: #333; }
+
+    #tt {
+        background: rgba(0,0,0,0.75);
+      position: absolute;
+
+
+      color: #fff;
+      padding: 6px 11px;
+      border-radius: 5px;
+
+      font-size: 14px;
+      pointer-events: none;
+      opacity: 0;
+
+      transition: opacity 0.16s;
+    }
+
+
+  </style>
+
+
+
+
+
+
+
+
+</head>
+<body>
+
+
+<!-- standard ttooltip and content-->
+<div id="tt"></div>
+<svg id="mtrx"></svg>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+// Citation: W. W. Zachary (See force directed graph)
+
+
+
+
+
+const marg = { top: 88, right: 21, bottom: 30, left: 90 };
+
+d3.csv("soc_karate.csv").then(edges => {
+
+  console.log(`My Data ::
+  ${new Set(edges.flatMap(d => [d.source, d.target])).size} nodes:: ${edges.length} edge count`);
+
+
+
+
+  // Need sorted nodes
+  const nodeIdList = Array.from(
+    new Set(edges.flatMap(d => [d.source, d.target]))).sort((a, b) => +a - +b);
+
+
+  const nodeIdListLen = nodeIdList.length;
+
+  const cSize = 19;
+  const gSize = nodeIdListLen * cSize;
+
+
+
+  const wd  = gSize + marg.left + marg.right;
+  const ht = gSize + marg.top  + marg.bottom;
+
+
+
+
+  /////////////////////////////////////////
+  const svg = d3.select("#mtrx")
+    .attr("width", wd).attr("height", ht).append("g")
+    .attr("transform", `translate(${marg.left},${marg.top})`);
+
+  // now creating adjacency set for matrx
+  // did some research on how to do a lookup and this seems standard:
+ // citations:
+  // Set: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set
+  // flatMap: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flatMap
+
+  const adjacencies = new Set(edges.flatMap(data => [
+    `${data.source}-${data.target}`, `${data.target}-${data.source}`]));
+
+  // cellular build
+  const _matrix = [];
+
+  // loop over rows and columns, building cells
+  for (const row of nodeIdList) {
+    for (const col of nodeIdList) {
+      _matrix.push({row, col,
+        // lookup from adjeancencies
+        filled: adjacencies.has(`${row}-${col}`)
+      });
+    }
+  }
+
+
+
+  const sc = d3.scaleBand().domain(nodeIdList).range([0, gSize]);
+
+
+
+  // Draw cells
+  const selectedCell = svg.append("g")
+    .selectAll("rect")
+    .data(_matrix)
+    .join("rect")
+    .attr("class", d => `cell ${d.filled ? "filled" : "empty"}`) // dynamic class selection
+    .attr("x", d => sc(d.col))
+    .attr("y", d => sc(d.row))
+    .attr("width",  cSize - 1)
+    .attr("height", cSize - 1);
+
+  // x label
+  const xAxis = svg.append("g")
+    .selectAll("text")
+    .data(nodeIdList).join("text")
+    .attr("class", "label")
+    .attr("x", d => sc(d) + cSize / 2)
+    .attr("y", -5)
+    .attr("text-anchor", "middle").text(value => value);
+
+  // y axis
+  const yAxis = svg.append("g").selectAll("text").data(nodeIdList).join("text")
+    .attr("class", "label").attr("x", -7)
+    .attr("y", d => sc(d) + cSize / 2 + 4).attr("text-anchor", "end").text(lbbl => lbbl);
+
+  const tt = document.getElementById("tt");
+
+
+
+
+  //////////////
+  // TODO - would like to make the filled cell retain its color from initial layout so it is easier to see
+  // cell hovering, show connectedness string
+  selectedCell.on("mouseover", (event, d) => {
+      selectedCell.attr("class", c =>
+              // dynamic highlighting row and column
+        c.row === d.row || c.col === d.col
+          ? `cell highlight-cross` : `cell ${c.filled ? "filled" : "empty"}`
+      );
+
+
+
+      // tool tip action!!!!
+      const nodesAreConnFlag = d.filled ? "Connected!" : "No Connection";
+
+
+
+      tt.textContent = `${nodesAreConnFlag}`;
+
+      tt.style.opacity = 1;
+
+      // placement
+      tt.style.left = (event.pageX + 12) + "px";
+      tt.style.top  = (event.pageY - 28) + "px";
+    })
+
+          // placement
+    .on("mousemove", event => {
+      tt.style.left = (event.pageX + 12) + "px";
+      tt.style.top  = (event.pageY - 28) + "px";
+    })
+
+          // mouse off, unshow
+    .on("mouseout", () => {
+      selectedCell.attr("class", cellClass => `cell ${cellClass.filled ? "filled" : "empty"}`);
+
+      // unseelect via highlighting change
+
+      xAxis.classed("highlighted", false);
+      yAxis.classed("highlighted", false);
+      tt.style.opacity = 0;
+    });
+});
+
+
+
+</script>
+</body>
+</html>
