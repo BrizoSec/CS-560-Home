@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+
+
+
+<html lang="en">
+
+
+<head>
+
+
+  <meta charset="UTF-8">
+
+  <title>Karate Frienships; Force Directed Graph</title>
+
+  <style>
+
+    /*basic settings*/
+    body { background: #fff;   margin: 0;  }
+
+    /*node diagram links w/ settings*/
+    .link.faded { stroke-opacity: 0.05; }
+    .link { stroke: #676767; stroke-opacity: 0.6; }
+    .link.highlighted { stroke: #790de0; stroke-width: 3.5; }
+
+
+    /*set cursor to hand icon for moving objects*/
+    .node circle { fill: #00ff33; stroke: #11e7a9; stroke-width: 3; cursor: grab; }
+
+    /*set font size*/
+    .node text { font-size: 14px; pointer-events: none; }
+
+
+
+    #tt {
+      font-size: 14px;
+      position: absolute;
+      background: rgb(5, 5, 5);
+      color: #fff;
+
+      padding: 6px 12px;
+      border-radius: 5px;
+
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.16s;
+    }
+
+
+  </style>
+
+</head>
+
+
+<!-------------------------------------->
+<body>
+
+<!--adding tooltip and graph-->
+<div id="tt"></div>
+<svg id="graph"></svg>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+// Cite: W. W. Zachary, An information flow model for conflict and fission in small groupsJournal of Anthropological Research 33, 452-473 (1977).
+// My Used dataset: https://networkrepository.com/soc-karate.php
+
+
+
+// console.log("test");
+console.log("Start check");
+
+
+
+
+const wd = window.innerWidth, height = window.innerHeight;
+const svg_content = d3.select("#graph").attr("width", wd).attr("height", height);
+
+
+
+// read data from csv and plot
+d3.csv("soc_karate.csv").then(edgeInput => {
+
+
+
+
+  // flatmap reference: https://observablehq.com/blog/reshaping-data-plot-d3
+  // reference example start --------------
+  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/flatMap
+//   const arr = [1, 2, 1];
+//
+// const result = arr.flatMap((num) => (num === 2 ? [2, 2] : 1));
+//
+// console.log(result);
+// Expected output: Array [1, 2, 2, 1]
+//   reference example end ----------
+
+  const fullNodes = new Set(edgeInput.flatMap(n => [n.source, n.target]));
+
+
+  const nodesRaw = Array.from(fullNodes).map(id => ({ id }));
+
+  const linksRaw = edgeInput.map(nodeIn => ({ source: nodeIn.source, target: nodeIn.target }));
+
+
+  // console.log(`Read ${nodes.length} \n${links.length} edges`);
+
+  const forceDirectedSim = d3.forceSimulation(nodesRaw)
+      .force("center",    d3.forceCenter(wd / 2, height / 2))
+    .force("link",      d3.forceLink(linksRaw).id(d => d.id).distance(91)).force("charge", d3.forceManyBody().strength(-282))
+    //
+    .force("collision", d3.forceCollide(19));
+
+
+
+  // catch edges so we can highlight connected
+  const selectedEdge = svg_content.append("g").selectAll("line").data(linksRaw).join("line").attr("class", "link");
+
+
+  // https://d3js.org/d3-drag used for drag and end logic - there is more complicated version but just using these
+  // TODO - only initial drag works, not sure why
+  const selectedNode = svg_content.append("g").selectAll("g").data(nodesRaw).join("g").attr("class", "node")
+    .call(d3.drag()
+      .on("drag", (_edge, boundData) => { boundData.fx = _edge.x; boundData.fy = _edge.y; }) // allow dragging
+      .on("end",  (_edge, boundData) => { boundData.fx = null; boundData.fy = null; })); // ending position
+
+
+
+  selectedNode.append("circle").attr("r", 11);
+  selectedNode.append("text").attr("dx", 11).attr("dy", 4).text(d => d.id);
+
+  // set tooltip to selected
+  const tt = document.getElementById("tt");
+
+  // reference: https://flowingdata.com/2012/08/02/how-to-make-an-interactive-network-visualization/
+  selectedNode
+    .on("mouseover", (e, d) => {
+      selectedNode.classed("active", _node => _node.id === d.id);
+      selectedEdge
+              // make sure select node id matches...then highlight
+        .classed("highlighted", _edge => _edge.source.id === d.id || _edge.target.id === d.id).classed("faded",
+              _edge => _edge.source.id !== d.id && _edge.target.id !== d.id);
+      tt.textContent = `Individual ${d.id}`;
+      tt.style.opacity = 1; // need to set to 1 to show
+
+
+      // offset top and leeft
+      tt.style.left = (e.pageX + 12) + "px";
+      tt.style.top  = (e.pageY - 28) + "px";
+    })
+
+          // simple offset
+    .on("mousemove", _edge => {
+      tt.style.left = (_edge.pageX + 12) + "px";
+      tt.style.top  = (_edge.pageY - 28) + "px";
+    })
+
+          // on mouse off, unhighlight the nodes
+    .on("mouseout", () => {
+
+      selectedEdge.classed("highlighted", false).classed("faded", false);
+      tt.style.opacity = 0;
+      selectedNode.classed("active", false);
+    });
+
+
+  // this draws graph edges when the nodes have been dragged, and lets them settle properly drawn
+  // used this reference to figure out how to get the edges right: https://observablehq.com/@d3/force-directed-graph-component
+  // https://observablehq.com/@d3/force-directed-graph-component
+  forceDirectedSim.on("tick", () => {
+    selectedEdge
+            // "dragged" from above example
+      .attr("x1", startingX => startingX.source.x).attr("y1", startingY => startingY.source.y)
+      .attr("x2", endingX => endingX.target.x).attr("y2", endingY => endingY.target.y);
+    selectedNode.attr("transform", d => `translate(${d.x},${d.y})`);
+  });
+
+});
+
+</script>
+
+</body>
+
+</html>
+
+
