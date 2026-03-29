@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+
+
+<!--citation-->
+<!--    W. W. Zachary, An   -->
+
+<!--%     information flow model for conflict and fission in small groups, Journal of -->
+
+<!--%   Anthropological Research 33, 452-473 (1977)-->
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <title>Karate Club Friendships Data: Edge Bundling</title>
+
+
+  <style>
+
+    body { margin: 0; background: #fff;  }
+
+
+    .link {
+      fill: none;
+      stroke: #790ed1;
+      stroke-width: 1.6;
+
+      stroke-opacity: 0.36;
+      transition: stroke-opacity 0.3s;
+
+    }
+
+
+
+
+    .link.highlighted {
+      stroke: #ef6c0c;
+      stroke-opacity: 1;
+
+      stroke-width: 2.7;
+    }
+
+
+
+    .link.faded {
+      stroke-opacity: 0.06;
+    }
+
+
+
+    .node circle {
+      fill: rgba(198, 30, 114, 0.77);
+      cursor: pointer;
+      transition: fill 0.2s;
+    }
+
+
+    .node.active circle { fill: #e15759; }
+    .node text { font-size: 12px; }
+
+    #tt {
+      position: absolute;
+      background: rgba(34, 33, 33, 0.75);
+      color: #fff;
+
+      padding: 6px 10px;
+      border-radius: 5px;
+      font-size: 14px;
+      pointer-events: none;
+
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+
+  </style>
+
+</head>
+
+
+
+<body>
+
+<!-- essential elements-->
+<div id="tt"></div>
+<svg id="graph"></svg>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+
+<script>
+  //          dataset: https://networkrepository.com/soc-karate.php
+  console.log("getting started")
+
+  const wd = 800, ht = 800, rad = 300;
+
+
+
+  const svgCon = d3.select("#graph")
+    .attr("width", wd).attr("height", ht).append("g").attr("transform", `translate(${wd / 2},${ht / 2})`);
+
+
+
+  // read data
+  d3.csv("soc_karate.csv").then(edgeData => {
+    //
+    console.log(`Data ____ ${new Set(edgeData.flatMap(d => [d.source, d.target])).size}`);
+
+
+
+    // need to sort otherwise its totally choatic
+    const sortedIndividualIDs = Array.from(
+      new Set(edgeData.flatMap(d => [d.source, d.target]))).sort((fir, sec) => +fir - +sec);
+
+
+    // need flat breakdown of hiearchy for graph
+    const rtMapToAll = d3.hierarchy({ id: "root", children: sortedIndividualIDs.map(id => ({ id })) });
+
+
+
+    ////////////
+    // layout setting to circle
+    d3.cluster().size([360, rad])(rtMapToAll);
+
+
+
+    //map node to data
+    const mapOfNodes = new Map(rtMapToAll.leaves().map(_data => [_data.data.id, _data]));
+
+
+
+    // line generator (radial from prior class example)
+    const _ln = d3.lineRadial()
+      .curve(d3.curveBundle.beta(0.85)).radius(d => d.y).angle(d => d.x * Math.PI / 180);
+
+    // BUNDLED EDGE from reference
+    /// TODO - refactor or add this to the node diagram so its one chart
+    const bundledLinks = svgCon.append("g")
+      .selectAll("path").data(edgeData).join("path")
+      .attr("class", "link")
+      .attr("d", _el => {
+        const start = mapOfNodes.get(_el.source);
+        const end = mapOfNodes.get(_el.target);
+        return _ln(start.path(end));
+      });
+
+    // nodes on map
+    const nodeSel = svgCon.append("g").selectAll("g").data(rtMapToAll.leaves()).join("g").attr("class", "node")
+      .attr("transform", d => `rotate(${d.x - 90}) translate(${d.y},0)`);
+
+
+
+
+    /////////////////////
+    // set svg circule as node element
+    nodeSel.append("circle").attr("r", 9);
+
+
+
+
+    // add label
+    nodeSel.append("text").attr("dy", "0.36em")
+      .attr("dx", d => d.x < 180 ? 12 : -12)
+      .attr("text-anchor", d => d.x < 180 ? "start" : "end") // this will rotate the text like a clock
+      .attr("transform", d => d.x >= 180 ? "rotate(180)" : null).text(d => d.data.id);
+
+    // tooltip
+    const tt = document.getElementById("tt");
+
+
+    // node selection tooltip tracker
+    nodeSel
+
+      .on("mouseover", (event, data) => {
+
+        bundledLinks.classed("highlighted", myEdge => myEdge.source === data.data.id || myEdge.target === data.data.id);
+
+        tt.textContent = `Node ${data.data.id}`;
+        tt.style.opacity = 1; // necessary
+
+        // offset of text
+        tt.style.left = (event.pageX + 12) + "px";
+        tt.style.top  = (event.pageY - 28) + "px";
+      })
+
+            // mouse off, unselect (back to orig)
+      .on("mouseout", () => {
+        bundledLinks.classed("highlighted", false);
+        tt.style.opacity = 0;
+      });
+
+  });
+
+
+
+</script>
+</body>
+</html>
