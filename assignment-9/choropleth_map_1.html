@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+
+  <title>Choropleth Map of US</title>
+
+
+
+  <!--
+    source data: https://www.ers.usda.gov/data-products/county-level-data-sets/
+    File: PopulationEstimates.csv
+using the following libraries
+
+       https://leafletjs.com
+          https://d3js.org
+      https://github.com/topojson/topojson
+      https://github.com/topojson/us-atlas
+
+    TODO: add a year selector
+
+  -->
+
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+
+
+
+
+
+  <style>
+    #map { height: 100vh; }
+
+    .state { pointer-events: all; cursor: pointer; stroke: #fff; stroke-width: 0.6px; }
+
+
+
+    #tt {
+      position: absolute;
+      background: white;
+
+      border-radius: 6px;
+      padding: 9px 12px;
+      font: 14px;
+
+      pointer-events: none;
+
+      display: none;
+      /*// wasnt working without z index for some reason*/
+      z-index: 1000;
+    }
+
+
+
+
+
+
+
+    #legend {
+      position: absolute;
+
+
+      bottom: 31px;
+      left: 33px;
+      background: white;
+
+      border-radius: 6px;
+      padding: 10px 14px;
+      font: 15px;
+
+      z-index: 1000;
+      pointer-events: none;
+
+    }
+
+
+
+  </style>
+</head>
+<body>
+
+
+<div id="map"></div>
+
+<div id="tt"><strong></strong><span></span></div>
+
+<div id="legend">
+
+  <div class="legend-title">Population Estimates by State</div>
+  <svg id="legend-svg" width="221" height="42"></svg>
+</div>
+
+
+
+<!--necessary scripts-->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+
+
+
+
+
+<script>
+  const mapSizing = L.map('map').setView([38, -97], 4);
+
+  // set layer for sttes
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  }).addTo(mapSizing);
+
+
+
+
+  // adding overlay to container of map
+  const svg = d3.select(mapSizing.getContainer()).append('svg')
+
+    .style('position', 'absolute').style('top', '0').style('left', '0').style('width', '100%').style('height', '100%')
+
+    .style('pointer-events', 'none').style('z-index', '401');
+
+
+
+  const g = svg.append('g');
+
+
+
+  // using example from https://bost.ocks.org/mike/leaflet/
+  // where he uses leaflet for map panning and regular zoom functions but then renders svg on top using d3
+  // geo geoTransform maps d3 coordinates to leaflet coordinates
+  // TODO - weird bug where the map takes a second to rerender , dont like it
+  function reMapToLeaflet(x, y) {
+
+    const original_point = mapSizing.latLngToContainerPoint(L.latLng(y, x));
+    this.stream.point(original_point.x, original_point.y);
+  }
+
+
+
+
+  // transformed mapping of state
+  const pathGen = d3.geoPath().projection(d3.geoTransform({ point: reMapToLeaflet }));
+
+  const tooltip = document.getElementById('tt');
+
+
+
+
+
+  // using promise b/c need json from website and the csv
+  Promise.all([
+    d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json'),
+    d3.csv('data/PopulationEstimates.csv')
+  ]).then(([usMapping, csvData]) => {
+
+    // state rows have complicated conversion required ........
+    const _map = new Map();
+
+
+    csvData.forEach(row => {
+
+      // pull out population est
+      const stateCountFipsCode = +row.FIPStxt;
+
+
+      // need to translate the fips code by only keeping state level rows (% 1000 = 0) and then row attribute is the
+      // POP_ESTIMATE_2023
+      // very time consumign to get this to work, curious if there were other easier ways ....
+      if (stateCountFipsCode > 0 && stateCountFipsCode % 1000 === 0 &&
+              row.Attribute === 'POP_ESTIMATE_2023') {
+
+        const simplified = String(Math.round(stateCountFipsCode / 1000)).padStart(2, '0');
+
+        _map.set(simplified, { name: row.Area_Name,     state: row.State, pop: +row.Value });
+      }
+    });
+
+    console.log("checking fips calcs: " + _map.size)
+
+    const stateValues = Array.from(_map.values()).map(row => row.pop);
+
+
+
+    // set color scale w/ min max
+    const colorScale = d3.scaleSequential().domain([d3.min(stateValues), d3.max(stateValues)]).interpolator(d3.interpolateYlGnBu); //
+
+
+
+    const paths = g.selectAll('path')
+            // map state date to json data
+      .data(topojson.feature(usMapping, usMapping.objects.states).features)
+      .join('path').attr('class', 'state')
+            // set color scale
+        .attr('fill',    _state =>  {
+          const isFound = _map.get(String(_state.id).padStart(2, '0'));
+          return isFound ? colorScale(isFound.pop) : '#ccc';
+        })
+        .attr('fill-opacity', 0.66)
+
+            // tool tip magic
+        .on('mousemove', function(event, d) {
+          const canLookupProperly = _map.get(String(d.id).padStart(2, '0'));
+
+          // safety!
+          if (!canLookupProperly) return;
+
+
+          d3.select(this).attr('fill-opacity', 1);
+          tooltip.style.display = 'block';
+
+          // offsets
+          tooltip.style.left = (event.pageX + 13) + 'px';
+          tooltip.style.top  = (event.pageY - 28) + 'px';
+
+          // value prints
+          tooltip.querySelector('span').textContent = `${canLookupProperly.name}: Population is ${canLookupProperly.pop}`;
+        })
+
+            // zoom off, jst reset it
+        .on('mouseout', function() {
+          d3.select(this).attr('fill-opacity', 0.65);
+          tooltip.style.display = 'none';
+        });
+
+    // hacky way to reset svg when user pans or zooms,
+    // TODO - look at better way here
+    function reDrawPostActivity() { paths.attr('d', pathGen); }
+    reDrawPostActivity();
+
+    // basically set the map to redraw on the ending of thse activities
+    mapSizing.on('moveend zoomend', reDrawPostActivity);
+
+
+
+
+
+
+
+
+
+
+    // Legend set up
+    const legSvgAd = d3.select('#legend-svg');
+
+
+
+    const legWidth = 201, legHeight = 13;
+
+
+
+    const grad = legSvgAd.append('defs').append('linearGradient').attr('id', 'leg-grad');
+
+    // put color stops in the legend gradient trans (ref: https://observablehq.com/@d3/choropleth &
+    // https://medium.com/@benoitvallon/gradients-in-d3-graphs-6f05441418f?
+    grad.selectAll('stop')
+      .data(d3.range(0, 1.02, 0.1)).join('stop')
+        .attr('offset', _r => `${_r * 100}%`)
+        .attr('stop-color', _r => colorScale(d3.min(stateValues)     + _r * (d3.max(stateValues) - d3.min(stateValues))));
+
+
+
+    // add color bar to legend
+    legSvgAd.append('rect')
+      .attr('x', 11).attr('y', 4).attr('width', legWidth).attr('height', legHeight)
+
+      .style('fill', 'url(#leg-grad)').attr('stroke', '#716d6d');
+
+
+    // put axis at bottom in corner
+    legSvgAd.append('g').attr('transform', `translate(0,${4 + legHeight})`)
+      .call(d3.axisBottom(d3.scaleLinear().domain([d3.min(stateValues), d3.max(stateValues)]).range([11, 11 + legWidth]))
+        .ticks(5).tickFormat(d3.format('.2s'))).select('.domain').remove();
+
+
+
+
+
+  }).catch(errorEncountered => console.error('Error loading data:', errorEncountered));
+
+
+
+</script>
+
+
+</body>
+
+</html>
