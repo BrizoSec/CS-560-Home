@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+
+  <meta charset="UTF-8">
+
+
+  <!--
+
+      expensive-states.csv from Missouri Economic Research and Information Center
+        https://meric.mo.gov/data/cost-living-data-series
+
+      lat_long.csv from reference provided in assignment
+
+
+
+      D3.js v7   https://d3js.org
+      TopoJSON   https://github.com/topojson/topojson
+      US Atlas https://github.com/topojson/us-atlas - thought this would be easier than leaflet example
+
+
+    TODO: would be nice to add a dropdown to switch the symbol-sizing
+
+  -->
+
+  <title>Proportional Symbol Map _ Cost of Living by State</title>
+  <style>
+
+
+
+
+    /*map container needs to be flex per reference*/
+    #mapCont {
+      display: flex;
+      justify-content: center;
+    }
+
+
+
+
+
+
+    .state-background {
+      fill: #d1cfce;
+
+
+      stroke-width: 0.8px;
+    }
+
+    .symbol {
+      fill: #1077cd;
+      fill-opacity: 0.55;
+      stroke-width: 0.8px;
+      cursor: pointer;
+    }
+
+    .symbol:hover {
+      fill-opacity: 0.91;
+
+    }
+
+    .symbol.mostExpensive {
+      fill: #da2d0e;
+    }
+
+
+
+    #tt {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.78);
+      color: #001181;
+      padding: 8px 14px;
+
+      font-size: 0.82em;
+      pointer-events: none;
+      display: none;
+      line-height: 1.6;
+    }
+
+
+
+
+    #legend {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 60px;
+      padding: 12px 0;
+      font-size: 13px;
+
+      
+    }
+
+    .legend-item        { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; }
+
+    .colorMapping       { width: 15px; height: 14px; border-radius: 50%; flex-shrink: 0; opacity: 0.7; }
+
+  </style>
+</head>
+<body>
+
+  <h1>Cost of Living by State (W/ highlighting of Top 10 by Cost)</h1>
+
+
+
+  <div id="mapCont">
+    <svg id="prop-map" width="980"  height="620"></svg>
+  </div>
+
+
+  <div id="tt"></div>
+
+
+  <div id="legend">
+    <div>
+
+      <strong>Color Reference</strong>
+      <div class="legend-item">
+        <span class="colorMapping" style="background:#da2d0e;"></span> Most Expensive States</div>
+
+
+
+
+      <div class="legend-item">
+        <span class="colorMapping" style="background:#1077cd;"></span> Bottom 40 States by Expense
+
+
+
+
+      </div>
+    </div>
+    
+    
+    <div>
+
+
+      <strong>Cost of Living Reference</strong>
+   
+      <svg id="sizeLegend"></svg></div>
+  </div>
+
+
+<!--necessary scripts-->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+
+
+<!--  - topojson.feature() converts the TopoJSON into GeoJSON features -->
+<!--  - topojson.mesh() extracts the shared borders between states-->
+<!--  using this tutorial online as a starting point: https://medium.com/@aendra/creating-topojson-using-d3-v4-10838d1a9538?-->
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+
+
+
+  <script>
+    const w = 960, h = 600;
+
+    // svg image
+    const svg = d3.select("#prop-map");
+    const _tt = d3.select("#tt");
+
+
+    const usProj = d3.geoAlbersUsa().scale(1260).translate([w / 2, h / 2]);
+
+
+
+
+    const geoPath = d3.geoPath().projection(usProj);
+
+    // load data multiple datasets
+    Promise.all([
+            // json of state locations
+      d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json"),
+        // provided lat and longs
+      d3.csv("data/lat_long.csv"),
+      // expense data
+      d3.csv("data/expensive-states.csv")
+
+
+
+
+
+
+    ]).then(([usMap, latData, expenses]) => {
+
+      // console.log('data length:', latData.length, expenses.length);
+
+      // map state to cost data
+      const expM = new Map(expenses.map(r => [r.State.trim(), r]));
+
+
+
+
+
+
+      // map state to lat long
+      const geoMapLatLong = new Map(latData.map(row => [row.state.trim(), { lat: +row.lat, lng: +row.lng }]));
+
+
+
+      // Map expenses to state data
+      const stateExpenseMappingFinal = [];
+
+
+
+
+
+      expM.forEach((expenseObj, stateName) => {
+        const coordLoc = geoMapLatLong.get(stateName);
+
+        // safety check
+        if (!coordLoc) return;
+
+        // determine location
+        const mappLocation = usProj([coordLoc.lng, coordLoc.lat]);
+
+
+        // safety
+        if (!mappLocation) return;
+
+
+        stateExpenseMappingFinal.push({
+          state: stateName,
+// using cost for bubble size
+          costIndex:          +expenseObj.costIndex,
+    // using rank for top 10
+          costRank:           +expenseObj.costRank,
+
+          // location of bubbles
+          x: mappLocation[0],
+          y: mappLocation[1]
+        });
+
+      });
+
+
+      console.log('scratch - testing path...', geoPath);
+
+      // played around with the sizing to get the bubbles ot look right
+      const rScale = d3.scaleSqrt()
+        .domain([75, d3.max(stateExpenseMappingFinal, obj => obj.costIndex)])
+        .range([8, 39])
+        .clamp(true);
+
+      // map base
+
+      const stateBase = topojson.feature(usMap, usMap.objects.states);
+
+      svg.append("g")
+        .selectAll("path").data(stateBase.features)
+        .join("path")
+          .attr("class", "state-background").attr("d", geoPath);
+
+      // borders: only edges shared between two different states
+      svg.append("path")
+        .datum(topojson.mesh(usMap, usMap.objects.states))
+        .attr("fill", "none")
+
+        .attr("stroke", "#070707").attr("stroke-width", 0.6).attr("d", geoPath);
+
+
+
+
+      // TODO - Need to fix outer edges because they're not showing
+      // TODO - for some reason north carolina is showing an extra line,
+      // svg.append("path")
+      //   .datum(topojson.mesh(usMap, usMap.objects.states, (a, b) => a === b))
+      //   .attr("fill", "none")
+      //   .attr("stroke", "#070707").attr("stroke-width", 0.6).attr("d", geoPath);
+
+      // draw largest states first
+      stateExpenseMappingFinal.sort((a, b) => b.costIndex - a.costIndex);
+
+      svg.append("g")
+        .selectAll("circle").data(stateExpenseMappingFinal)
+        .join("circle")
+              // set class by top 10 or not
+          .attr("class", d => d.costRank <= 10 ? "symbol mostExpensive" : "symbol")
+          .attr("cx", d => d.x)
+          .attr("cy", d => d.y).attr("r",  d => rScale(d.costIndex))
+
+
+              // tooltip functioning - on
+          .on("mousemove", (evt, d) => {
+            _tt.style("display", "block")
+              .style("left", (evt.pageX + 13) + "px")
+
+              .style("top",  (evt.pageY - 35) + "px").text(d.state + ": " + d.costIndex);
+          })
+
+              // mouse off
+          .on("mouseleave", () =>    _tt.style("display", "none"));
+
+
+      // legend below: single reference bubble
+      const ref100 = rScale(100);
+
+
+      const legSvg = d3.select("#sizeLegend").attr("width", 80).attr("height", ref100 * 2 + 24);
+
+
+      legSvg.append("circle")
+        .attr("cx", 42).attr("cy", ref100 + 2).attr("r", ref100)
+        .attr("fill", "#1077cd").attr("fill-opacity", 0.56)
+        .attr("stroke", "#333").attr("stroke-width", 0.81);
+
+
+      legSvg.append("text")
+        .attr("x", 42).attr("y", ref100 * 2 + 18)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "0.75em").attr("fill", "#444")
+              // reference point
+        .text("100");
+
+
+
+      //////////
+      // ////////////////
+    }).catch(failure => {
+      console.error("Failed to Load info ----------\n", failure);
+    });
+
+
+
+
+
+  </script>
+
+
+</body>
+
+
+</html>
+
