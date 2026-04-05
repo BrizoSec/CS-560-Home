@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="UTF-8">
+  <!--
+
+      world bank data on Population,
+      https://data.worldbank.org/indicator/SP.POP.TOTL
+      using  https://d3js.org
+      using https://github.com/topojson/topojson
+      using  https://github.com/topojson/world-atlas
+
+   basically folloed this tutorial:  https://d3-graph-gallery.com/graph/choropleth_basic.html
+    TODO: add a year slider
+
+  -->
+
+
+
+
+
+
+
+  <title>World Choropleth & Population Data   </title>
+
+
+
+
+
+  <style>
+    body { margin: 0; padding: 21px; }
+
+
+
+
+
+
+    svg  { display: block; margin: 0 auto; }
+
+
+
+    /* formatted tooltip  */
+    #tt {
+      position: absolute;
+
+      border: 1px solid #aaa;
+      padding: 8px 12px;
+      font-size: 0.85em;
+
+      pointer-events: none;
+      display: none;
+
+      background: white;
+
+    }
+
+
+
+  </style>
+  
+</head>
+
+
+<body>
+
+  <h1>Population by Country (w/ Tooltips)    </h1>
+
+
+  <svg id="wMap" width="961" height="507"></svg>
+  
+  
+  <div id="tt"></div>
+
+
+
+  <svg id="legSvg"    width="960"
+       height="50" style="display:block;margin:0 auto;"></svg>
+
+
+
+<!--  // using scripts per tutorial: https://d3-graph-gallery.com/graph/choropleth_basic.html-->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+  <script src="data/alpha3CharCodeLookup.js"></script>
+
+  <script>
+
+
+    const wid = 962, hgt = 501;
+
+
+
+
+
+    // svg and tt
+    const svg           = d3.select('#wMap');
+    const tt = document.getElementById('tt');
+
+    // natural view - default for world maps
+    // using https://d3js.org/d3-geo/projection#geoNaturalEarth1
+    const proj = d3.geoNaturalEarth1().scale(153).translate([wid / 2, hgt / 2]);
+
+
+
+    const p = d3.geoPath().projection(proj);
+
+    // collect all with a promise, need website data
+    Promise.all([
+      d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'), d3.csv('data/world_dataset.csv')
+    ]).then(([worldMapData, csvData]) => {
+
+      // console.log('  countries:', worldMapData.objects.countries.geometries.length);
+
+      // lookup: numeric ID to  { name, code, pop }
+      const populationMap    = new Map();
+
+
+
+
+
+      csvData.forEach(row => {
+        const cd  = row['Country Code'].trim(); // country codes
+
+
+        const ccLookupId = alpha3CharCodeLookup[cd];
+
+
+        // safety
+        if (!ccLookupId) return;                        // skip unknown codes
+
+
+
+        // get the popultion data for 2023
+        const pop = +row['2023'];
+
+
+        // # safety
+        if (!pop || isNaN(pop)) return;
+
+        populationMap.set(String(ccLookupId),
+                { name: row['Country Name'].trim(), code: cd, pop });
+      });
+
+
+
+
+
+      console.log('debug - check \n', populationMap.size);
+
+      // todo - change to using log b/c discrepacny
+      // after starting with linear i couldn't see most small countries so i had to switch
+
+
+
+      const popValues  = Array.from(populationMap.values()).map(row => row.pop);
+
+
+
+      const cScale = d3.scaleSequentialLog().domain([d3.min(popValues), d3.max(popValues)]).interpolator(d3.interpolateMagma);
+
+      // gotta draw them all
+      // combining TopoJSON + D3 geoPath (per tutorial above
+      svg.append('g').selectAll('path')
+        .data(topojson.feature(worldMapData, worldMapData.objects.countries).features)
+        .join('path')
+          .attr('class', 'country').attr('d', p)
+          .attr('fill', _coun => {
+            const countryInfo = populationMap.get(String(_coun.id));
+            return countryInfo ? cScale(countryInfo.pop) : '#a8a5a5';
+          })
+
+
+              // with tooltips!!!!!
+          .on('mousemove', (mouseEvent, d) => {
+            const info = populationMap.get(String(d.id));
+
+
+            // safety
+            if (!info) {
+              console.log("Missing country data!");
+              return;
+            }
+
+
+            // tooltip formatting
+            tt.style.display = 'block';
+            tt.style.left  = (mouseEvent.pageX + 16) + 'px';
+            tt.style.top  = (mouseEvent.pageY - 42) + 'px';
+            tt.innerHTML  = `${info.name}: Population: ${info.pop}`;
+          })
+              // mouse off
+          .on('mouseleave',
+                  () => tt.style.display = 'none');
+
+
+
+
+      // draw country borders but ignore outer coasts
+      // reference – https://github.com/topojson/topojson-client#mesh
+      // todo - figure out how to draw with a black border but not get issues on the outer coastss
+      svg.append('path')
+        .datum(topojson.mesh(worldMapData, worldMapData.objects.countries, (a, b) => a !== b))
+        .attr('fill', 'none').attr('stroke', '#ffffff').attr('stroke-width', 0.5).attr('d', p);
+
+
+      // drawn in a separate SVG below the map
+      const legSvg = d3.select('#legSvg');
+      const lW = 262, lH = 9;
+      const lX = 21, lY = 22;
+
+
+
+
+
+
+      const legGradient = legSvg.append('defs').append('linearGradient').attr('id', 'leg-grad');
+      legGradient.selectAll('stop')
+        .data(d3.range(0, 1.02, 0.1)).join('stop')
+
+              // color offfset increases
+          .attr('offset', d => `${d * 100}%`)
+
+
+          // using log 10 for values b/c of discrepency
+          .attr('stop-color', _val => {
+            const logMin = Math.log10(d3.min(popValues));
+            const logMax = Math.log10(d3.max(popValues));
+
+
+            return cScale(Math.pow(10,
+                    logMin + _val * (logMax - logMin)));
+          });
+
+
+      // legend
+      legSvg.append('text').attr('x', lX).attr('y', lY - 7).text('Population (Log10)');
+
+      legSvg.append('rect').attr('x', lX).attr('y', lY)
+        .attr('width', lW).attr('height', lH).style('fill', 'url(#leg-grad)')
+        .attr('stroke', '#0b0a0a').attr('stroke-width', 0.5);
+
+
+      legSvg.append('g').attr('transform', `translate(${lX}, ${lY + lH})`)
+        .call(d3.axisBottom(d3.scaleLog().domain([d3.min(popValues), d3.max(popValues)]).range([0, lW]))
+          .ticks(4, '.2s')).select('.domain').remove();
+
+
+
+
+
+
+
+      ////////
+    }).catch(myError => {console.error('Oh No.....', myError);});
+  </script>
+
+
+</body>
+
+
+
+</html>
+
