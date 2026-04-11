@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <title>   My Ethical Chart</title>
+<!--  // d3-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+
+  <style>
+
+    .allCharts { display: flex; gap: 42px; }
+  </style>
+  
+</head>
+
+<body>
+
+
+
+
+
+<h2>Comparison of Malicious Viz and My Ethical Viz   </h2>
+
+
+
+
+
+<div class="allCharts">
+
+
+
+  <div>
+
+    <h3>Super Deceptive Version   </h3>
+    <div id="deceptiveV"></div>
+
+
+  </div>
+
+  <div>
+
+    <h3>My Ethical Version which has Proper Colors and Right Y Axis </h3>
+    <div id="ethicalV"></div>
+  </div>
+
+
+</div>
+
+
+
+
+
+
+<script>
+
+const _mar = { top: 45, right: 121, bottom: 53, left: 61 };
+
+
+// width and height
+const _wid  = 461 - _mar.left - _mar.right;
+const _hei = 365 - _mar.top  - _mar.bottom;
+
+
+
+
+function chartBuilder(chartType, yAxisSettings, colorFilter) {
+
+
+  // create chart type
+  // console.log("Creating chart type:" + chartType)
+
+  const mySvg = d3.select(chartType).append("svg")
+    .attr("width",  _wid            + _mar.left + _mar.right)
+    .attr("height", _hei +         _mar.top  + _mar.bottom).append("g")
+    .attr("transform", `translate(${_mar.left},${_mar.top})`);
+
+
+  // load data and pop
+  d3.json("data/productivity_data.json").then(raw => {
+
+    // x and y
+    const x_axis = d3.scaleBand().domain(raw.map(pt => pt.label)).range([0, _wid]).padding(0.31);
+    const y_axis = d3.scaleLinear().domain(yAxisSettings).range([_hei, 0]);
+
+
+    // build now
+    mySvg.selectAll("rect").data(raw).join("rect")
+      .attr("x",            pt => x_axis(pt.label))
+      .attr("y",          pt => y_axis(pt.productivity_score))
+      .attr("width",       x_axis.bandwidth())
+      .attr("height", pt => _hei - y_axis(pt.productivity_score))
+            // fill with color filter fn
+      .attr("fill",       d => colorFilter(d.period));
+
+
+
+
+
+    // add axis labels
+    mySvg.append("g").attr("transform", `translate(0,${_hei})`).call(d3.axisBottom(x_axis))
+      .selectAll("text")
+      .attr("transform", "rotate(-35)") // need to rotate a bit so its more readable
+      .attr("text-anchor", "end")
+      .attr("dx", "-0.41em")
+      .attr("dy", "0.6em");
+    mySvg.append("g").call(d3.axisLeft(y_axis));
+
+
+    // add legend
+    mySvg.append("text")
+      .attr("transform", "rotate(-90)").attr("x", -_hei / 2).attr("y", -45)
+      .attr("text-anchor", "middle").text("Productivity Rating");
+
+
+
+    // todo - dont hardcode .......
+    const periods = ["Before", "After"];
+
+    const legend = mySvg.append("g").attr("transform", `translate(${_wid + 10}, 10)`);
+    // show box and colors
+    periods.forEach((ptr, idx) => {
+      legend.append("rect").attr("y", idx * 27).attr("width", 15).attr("height", 15).attr("fill", colorFilter(ptr));
+
+      // text next to color box
+      legend.append("text").attr("x", 18).attr("y", idx * 29 + 11).text(ptr);
+    });
+  });
+}
+
+
+
+
+///////////////////////////////////////
+// create deceptive chart
+chartBuilder("#deceptiveV", [65, 95], p => p === "Before" ? "#e74c3c" : "#27ae60");
+
+// full axis and proper colors
+chartBuilder("#ethicalV",   [0, 100], p => p === "Before" ? "#7ab1d3" : "#2f79b8");
+
+</script>
+
+
+
+
+
+
+<!--//////////-->
+</body>
+
+
+
+
+
+</html>

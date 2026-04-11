@@ -1,0 +1,10 @@
+[
+  { "week": 1, "period": "Before", "productivity_score": 71, "label": "Week 1" },
+  { "week": 2, "period": "Before", "productivity_score": 69, "label": "Week 2" },
+  { "week": 3, "period": "Before", "productivity_score": 72, "label": "Week 3" },
+  { "week": 4, "period": "Before", "productivity_score": 70, "label": "Week 4" },
+  { "week": 5, "period": "After",  "productivity_score": 84, "label": "Week 5" },
+  { "week": 6, "period": "After",  "productivity_score": 86, "label": "Week 6" },
+  { "week": 7, "period": "After",  "productivity_score": 85, "label": "Week 7" },
+  { "week": 8, "period": "After",  "productivity_score": 87, "label": "Week 8" }
+]

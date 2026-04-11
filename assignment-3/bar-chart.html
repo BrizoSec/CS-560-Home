@@ -77,8 +77,8 @@
             canvas.parent('canv-holder');
 
 
-            cWidth = width - leftMarg - rightMarg;
-            cHeight = height - topMarg - botMarg;
+            cWidth = _w - leftMarg - rightMarg;
+            cHeight = _h - topMarg - botMarg;
             // console.log('checkpoint1-size:', width, 'x', height);
 
             // laod data
@@ -156,9 +156,9 @@
             // add axes
             stroke(0);
             strokeWeight(2);
-            line(leftMarg, height - botMarg, width - rightMarg, height - botMarg); // x-axis with margins
+            line(leftMarg, _h - botMarg, _w - rightMarg, _h - botMarg); // x-axis with margins
             // i was having an issue where the x axis labels were not showing b/c the margin was too small
-            line(leftMarg, topMarg, leftMarg, height - botMarg); // y-axis w/ margins
+            line(leftMarg, topMarg, leftMarg, _h - botMarg); // y-axis w/ margins
 
             // x-axis labels (values to measure)
             fill(0);
@@ -187,14 +187,14 @@
 
             // create 7 evenly spaced tick marks on x axis (played around and found 7 seemed to look good)
             for (let i = 0; i <= 6; i++) {
-                let xPos = map(i, 0, 5, leftMarg, width - rightMarg);
+                let xPos = map(i, 0, 5, leftMarg, _w - rightMarg);
                 let value = Math.round(map(i, 0, 5, 0, maxValue));
-                text(value.toLocaleString(), xPos, height - botMarg + 5);
+                text(value.toLocaleString(), xPos, _h - botMarg + 5);
 
                 // draw grid lines as well
                 stroke(200);
                 strokeWeight(1);
-                line(xPos, topMarg, xPos, height - botMarg);
+                line(xPos, topMarg, xPos, _h - botMarg);
             }
 
 

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <title>My version of the Deceptive Bar myChart </title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+
+</head>
+<body>
+
+
+
+
+
+
+
+
+<h2>Measure of Productivity Before and After Purchasing Standing Desks (Fake Data)</h2>
+
+
+
+
+<p>The manipulation techniques I used are Y axis offset and emotional colors. The Y axis starts at 65 and the bar Chart colors
+are red and green which should auto elicit certain emotional associations by the reader. </p>
+
+<div id="myChart"></div>
+
+
+
+
+<script>
+
+
+const _m = { top: 42, right: 122, bottom: 52, left: 62 };
+
+
+const _w  = 580 - _m.left - _m.right;
+const _h = 380 - _m.top  - _m.bottom;
+
+
+
+
+
+const _svg = d3.select("#myChart").append("svg")
+  .attr("width",  _w  +   _m.left   + _m.right)
+  .attr("height",   _h + _m.top   + _m.bottom)
+  .append("g").attr("transform", `translate(${_m.left},${_m.top})`);
+
+
+
+
+
+// load data
+d3.json("data/productivity_data.json").then(raw => {
+
+  // create x scale for categories
+  const x_cats = d3.scaleBand().domain(raw.map(d => d.label)).range([0, _w]).padding(0.3);
+
+  // hardcoded starting point for y axis is manipulative
+  const y_axi = d3.scaleLinear().domain([65, 95]).range([_h, 0]);
+
+  // set colors to emotionally charged colors
+  const color = { Before:                 "#e74c3c",            After: "#27ae60" };
+
+
+
+
+  console.log("manipulative actions are color and y axis start point")
+  _svg.selectAll("rect").data(raw).join("rect")
+    .attr("x",      pt => x_cats(pt.label))
+    .attr("y",               pt => y_axi(pt.productivity_score))
+    .attr("width",  x_cats.bandwidth())
+    .attr("height", pt => _h -              y_axi(pt.productivity_score))
+    .attr("fill",   pt => color[pt.period]);
+
+
+
+
+  // add axis labels
+  _svg.append("g").attr("transform", `translate(0,${_h})`).call(d3.axisBottom(x_cats));
+  _svg.append("g").call(d3.axisLeft(y_axi));
+
+  // add legend
+  const _leg = _svg.append("g").attr("transform", `translate(${_w + 10}, 10)`);
+
+
+  // TODO - second time ive hardcoded the color (not ideal)
+  [["Before", "#e74c3c"], ["After", "#27ae60"]].forEach(([label, col], i) => {
+    _leg.append("rect").attr("y", i * 28).attr("width", 14).attr("height", 14).attr("fill", col);
+    _leg.append("text").attr("x", 28).attr("y", i * 28 + 11).text(label);
+  });
+
+});
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>
