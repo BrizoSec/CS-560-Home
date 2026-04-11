@@ -1,132 +1,260 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
+
   <meta charset="UTF-8">
-  <title>B Requirements – Ethical Chart &amp; Analysis</title>
+
+  <title>B Requirements: Ethical Chart Analysis (Side by Side)</title>
+
+
+<!--  // d3-->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+
   <style>
-    body { max-width: 1100px; margin: 0 auto; padding: 24px; font-family: Arial, sans-serif; }
-    .charts { display: flex; gap: 40px; flex-wrap: wrap; }
-    #tooltip {
+
+    .charts { display: flex; gap: 42px; flex-wrap: wrap; }
+
+
+
+    #myTool {
       position: absolute;
+
       background: white;
-      border: 1px solid #ccc;
-      padding: 8px 12px;
-      font-size: 13px;
+
+      border: 2.3px solid #ccc;
+      padding: 9px 14px;
+
+
+
+      font-size: 15px;
       pointer-events: none;
+
       display: none;
+      z-index: 1000;
     }
   </style>
+
 </head>
+
 <body>
 
-<h2>Side-by-Side Comparison</h2>
+
+
+
+<h2>Comparing Ethical and Deceptive Charts Side by Side For Productivity Study</h2>
+
+
+
+
 
 <div class="charts">
   <div>
     <h3>Deceptive Version</h3>
-    <div id="deceptive"></div>
+    <div id="deceptiveSettings"></div>
   </div>
+
+
+
+
   <div>
     <h3>Ethical Version</h3>
-    <div id="ethical"></div>
+    <div id="ethicalSettings"></div>
   </div>
 </div>
 
-<div id="tooltip"></div>
 
-<h2>Manipulation Analysis</h2>
 
-<p>The deceptive chart uses three techniques to exaggerate the story and imply a false causal relationship between standing desk adoption and U.S. labor productivity.</p>
 
-<p><strong>Technique 1 – Truncated Y-axis.</strong> The Y-axis begins at 100 rather than 0. Because the full range of the data spans only about 13 index points (104.2 to 117.6), starting at 100 compresses the visible range so that the 2021 bar appears to tower over the 2015 bar. In the ethical version, with the axis anchored at 0, the bars are roughly the same height — correctly conveying that the productivity gain, while real, represents only a 12% improvement over eight years, not a doubling or tripling of output.</p>
+<!--///////////////////-->
 
-<p><strong>Technique 2 – False causal annotation.</strong> A vertical dashed line labeled "Standing Desk Adoption Crosses 50% of Fortune 500" is placed at 2019. No such data point is cited or sourced — it is a fabricated milestone designed to make a correlation look like a mechanism. Readers naturally assume that annotations on a data chart are evidence-backed. By placing a causal marker exactly where the trend line steepens, the chart exploits this expectation to lead viewers to a conclusion the data cannot support. The steepening after 2019 almost certainly reflects the economic disruption of COVID-19 (output held while measured hours dropped), not ergonomic investment.</p>
 
-<p><strong>Technique 3 – Misleading color gradient.</strong> Bars are filled with a gradient from pale yellow (early years) to deep green (recent years). This encodes "improvement" as a visual property of each bar independently of any comparison, reinforcing the false narrative that productivity grew because of something deliberate and positive rather than due to measurement artifacts during the pandemic. In the ethical chart, a single neutral blue is used for all bars, letting the actual heights communicate the data without emotional priming.</p>
 
-<p><strong>What each version communicates.</strong> The deceptive chart tells a story of dramatic, policy-driven transformation. The ethical chart tells a more modest story: a gradual upward trend with a notable spike in 2020–2021 that partially corrected in 2022, consistent with a well-known pandemic-era measurement effect. The real data does not support attributing the productivity index to standing desks at all.</p>
+<div id="myTool"></div>
 
-<p><em>Data: U.S. Bureau of Labor Statistics, Major Sector Productivity and Costs, Private Nonfarm Business, Output per Hour All Workers, Index 2012=100, series PRS85006093.</em></p>
+
+
+<p>Deception Analysis:
+  There are three techniques used to trick readers here. The net is that users are being tricked into thinking that
+  there are huge productivity gains from adopting standing desk policies when in reality, there are NOT. The benign version
+  properly handles the data and doesn't use any techniques to otherwise influence readers one way or the other.
+
+  TECHNIQUE (DECEPTIVE) 1: Y axis starts at 100 instead of 0 so any gains look larger than they actually are
+  TECHNIQUE (DECEPTIVE) 2: A false claim is overlaid on the chart stating that % adoption crossed X%, this is a lie
+  TECHNIQUE 3: A color scale is used from yellow to green which subliminally suggests that the productivity is increasing
+
+  All very well laid out techniques to get users to purchase more standing desks. I have a standing desk and I love it.
+
+  My ethical chart tells the real story. There is a gradual upward trend with a with some spikes and corrections but
+  the trend is nothing compared to what is shown in the deceptive version. It is more of just the plain stats and not
+  a big change.
+  </p>
+
+<p>Reference Data: U.S. Bureau of Labor Statistics: Major Sector Productivity and Costs: Index 2012=100: and series
+  PRS85006093.  </p>
 
 <script>
-const margin = { top: 60, right: 160, bottom: 50, left: 70 };
-const width  = 500 - margin.left - margin.right;
-const height = 400 - margin.top  - margin.bottom;
-const tt = d3.select("#tooltip");
 
-function buildChart(selector, yDomain, fillFn, title, showAnnotation) {
-  const svg = d3.select(selector).append("svg")
-    .attr("width",  width  + margin.left + margin.right)
-    .attr("height", height + margin.top  + margin.bottom)
-    .append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+const _marg = { top: 62, right: 162, bottom: 50, left: 71 };
 
-  d3.csv("data/bls_productivity.csv", d => ({ year: d.year, idx: +d.productivity_index })).then(data => {
-    const x = d3.scaleBand().domain(data.map(d => d.year)).range([0, width]).padding(0.25);
-    const y = d3.scaleLinear().domain(yDomain).range([height, 0]);
+const _wid  = 507 -              _marg.left - _marg.right;
+const _h = 403 -    _marg.top  - _marg.bottom;
 
-    if (showAnnotation) {
-      const ax = x("2019") + x.bandwidth() / 2;
-      svg.append("line").attr("x1", ax).attr("x2", ax).attr("y1", 0).attr("y2", height)
-        .attr("stroke", "#2980b9").attr("stroke-dasharray", "4,3").attr("stroke-width", 1.8);
+
+
+// tooltip
+const tt = d3.select("#myTool");
+
+
+
+
+// console.log("test 1")
+
+function generate(chartType, yRange, fillFn, titleText, flagShowAnn) {
+
+  // simple svg
+  const svg = d3.select(chartType).append("svg")
+    .attr("width",  _wid  +        _marg.left +      _marg.right)
+    .attr("height", _h + _marg.top  +     _marg.bottom)
+          // offset
+    .append("g").attr("transform", `translate(${_marg.left},${_marg.top})`);
+
+
+  // load data
+  d3.csv("data/bls_productivity.csv", d => ({ year: d.year, idx: +d.productivity_index })).then(input => {
+
+    // scale x and y
+    const xScale = d3.scaleBand().domain(input.map(pt =>    pt.year)).range([0, _wid]).padding(0.25);
+    const ySc = d3.scaleLinear()
+            .domain(yRange).range([_h, 0]);
+
+
+
+    // if we want to show the annotation
+    if (flagShowAnn) {
+
+      // fake annotation
+
+      const ax = xScale("2019") +     xScale.bandwidth() / 2;
+
+
+      // line
+      svg.append("line").attr("x1", ax).attr("x2", ax).attr("y1", 0).attr("y2", _h)
+        .attr("stroke", "#000000").attr("stroke-dasharray", "4,3").attr("stroke-width", 1.8);
+
+      // a comment that is non only vague but untrue
+
       svg.append("text").attr("x", ax + 4).attr("y", 12)
-        .style("font-size", "10px").style("fill", "#2980b9").text("Standing Desk Adoption");
-      svg.append("text").attr("x", ax + 4).attr("y", 24)
-        .style("font-size", "10px").style("fill", "#2980b9").text("Crosses 50% Fortune 500");
+        .style("font-size", "10px").style("fill", "#02090e").text("Adoption % Surpasses 75%");
+
     }
 
-    svg.selectAll("rect").data(data).join("rect")
-      .attr("x",      d => x(d.year))
-      .attr("y",      d => y(d.idx))
-      .attr("width",  x.bandwidth())
-      .attr("height", d => height - y(d.idx))
-      .attr("fill",   d => fillFn(d))
+
+
+
+    // build svg
+    svg.selectAll("rect").data(input).join("rect")
+      .attr("x",            pt => xScale(pt.year))
+      .attr("y",                 pt => ySc(pt.idx))
+      .attr("width",    xScale.bandwidth())
+      .attr("height",   d => _h - ySc(d.idx))
+      .attr("fill",    d => fillFn(d))
+
+
+
+            // with lovely mouse over tooltips
       .on("mouseover", function(event, d) {
         d3.select(this).attr("opacity", 0.75);
-        tt.style("display", "block")
-          .html(`<strong>${d.year}</strong><br>Index: ${d.idx}`);
-      })
+        tt.style("display", "block").html(`Index: ${d.idx}`);})
+
+
+            // offest
       .on("mousemove", event => {
-        tt.style("left", (event.pageX + 12) + "px").style("top", (event.pageY - 36) + "px");
+        tt.style("left", (event.pageX + 13) + "px").style("top", (event.pageY - 37) + "px");
       })
+
+            // mouse off
       .on("mouseout", function() {
         d3.select(this).attr("opacity", 1);
         tt.style("display", "none");
       });
 
-    svg.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x));
-    svg.append("g").call(d3.axisLeft(y));
 
-    svg.append("text").attr("transform", "rotate(-90)").attr("x", -height / 2).attr("y", -54)
-      .attr("text-anchor", "middle").style("font-size", "12px").text("Productivity Index (2012=100)");
 
-    svg.append("text").attr("x", width / 2).attr("y", -22)
+    // axis
+    svg.append("g").attr("transform", `translate(0,${_h})`).call(d3.axisBottom(xScale));
+    svg.append("g").call(d3.axisLeft(ySc));
+
+
+    // title (y)
+    svg.append("text").attr("transform", "rotate(-90)").attr("x", -_h / 2).attr("y", -54)
+      .attr("text-anchor", "middle").style("font-size", "12px").text("Productivity Index");
+
+
+
+
+
+
+    // title
+    svg.append("text").attr("x", _wid / 2).attr("y", -22)
       .attr("text-anchor", "middle").style("font-size", "13px").style("font-weight", "bold")
-      .text(title);
+      .text(titleText);
 
-    // Legend
-    const leg = svg.append("g").attr("transform", `translate(${width + 12}, 20)`);
-    const legendItems = showAnnotation
-      ? [{ label: "Pre-adoption", color: "#f9e79f" }, { label: "Post-adoption", color: "#1a7a34" }]
-      : [{ label: "Productivity Index", color: "#4a90d9" }];
+
+
+
+
+    // legend
+    const _leg = svg.append("g").attr("transform", `translate(${_wid + 12}, 21)`);
+
+
+
+    const legendItems = flagShowAnn
+      ? [{ label: "Before Adoption", color: "#f9e79f" }, { label: "Post Adoption", color: "#14772f" }]
+      : [{ label: "Productivity Index", color: "#297dd5" }];
+
+    // over each, append (3 total)
     legendItems.forEach((d, i) => {
-      leg.append("rect").attr("y", i * 24).attr("width", 14).attr("height", 14)
-        .attr("fill", d.color).attr("stroke", "#aaa");
-      leg.append("text").attr("x", 18).attr("y", i * 24 + 11).style("font-size", "11px").text(d.label);
+      _leg.append("rect").attr("y", i * 24).attr("width", 16).attr("height", 14).attr("fill", d.color).attr("stroke", "#aaa");
+
+
+
+      _leg.append("text").attr("x", 19).attr("y", i * 24 + 12).style("font-size", "12px").text(d.label);
     });
   });
 }
 
-const colorGradient = d3.scaleLinear().domain([104, 118]).range(["#f9e79f", "#1a7a34"]);
 
-// Deceptive: truncated axis + gradient color + false annotation
-buildChart("#deceptive", [100, 120], d => colorGradient(d.idx),
-  "Productivity Skyrockets After Rollout", true);
 
-// Ethical: full axis + neutral color + no annotation
-buildChart("#ethical", [0, 125], () => "#4a90d9",
-  "U.S. Productivity Index, 2015–2023", false);
+
+
+
+
+///////////////////////////////////////////
+// console.log("generating both charts:" + "test")
+const misLeadingColorGrad = d3.scaleLinear().domain([104, 118]).range(["#f9e79f", "#1a7a34"]);
+
+//  truncated axis and gradient color and of course false annotation
+generate("#deceptiveSettings", [100, 120], d => misLeadingColorGrad(d.idx), "Major Productivity Boosts After Rollout!!!", true);
+
+
+
+
+
+// no annotation, proper color schemes and clean y axis
+
+generate("#ethicalSettings", [0, 125], () => "#4a90d9", "U.S. Productivity Rates, 2015 tp 2023", false);
 </script>
 
+
+
+
+
+
 </body>
+
+
+
+
+
 </html>
