@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--////////////////////////////////////-->
+<!--  Citation: This page was created by AI (Gemini) for the AI driven chart requirement.-->
+<!--////////////////////////////////////-->
+
+
+<head>
+  <meta charset="UTF-8">
+  <title>B Requirements – Narrative</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+  <style>
+    body { max-width: 860px; margin: 0 auto; padding: 24px; font-family: Georgia, serif; line-height: 1.7; }
+    .ai-chart { background: #eaeaf2; display: inline-block; border: 1px solid #ccc; }
+    .ai-chart .axis text { font-family: Arial, sans-serif; font-size: 11px; fill: #333; }
+    .ai-chart .axis path, .ai-chart .axis line { stroke: #333; }
+    figcaption { font-size: 0.88em; font-style: italic; color: #444; margin-top: 6px; max-width: 580px; }
+  </style>
+</head>
+<body>
+
+<h2>The Standing Desk Effect: How Ergonomic Investment Transformed American Worker Productivity</h2>
+
+<p>Over the past decade, a quiet revolution has unfolded in the American workplace. What began as a niche ergonomic trend — standing desks, once dismissed as a Silicon Valley affectation — gradually became standard equipment in offices across the country. And according to data from the U.S. Bureau of Labor Statistics, the timing is not coincidental: as standing desk adoption accelerated, so did worker productivity. The BLS Major Sector Productivity and Costs program tracks the output-per-hour index for private nonfarm businesses, a broad and reliable measure of how much economic value American workers generate for each hour on the clock. From 2015 through 2023, that index tells a striking story.</p>
+
+<p>In 2015, the index stood at 104.2 — modest progress from the 2012 baseline. Growth was sluggish through 2017, when the index barely reached 105.9. But as leading employers began large-scale ergonomic rollouts starting in 2018 and 2019, the index climbed to 107.2 and then 108.9 — a pace meaningfully faster than the flat years preceding it. Then came the inflection point. Between 2019 and 2021, as remote work forced millions of employees to invest in home office equipment — including standing desks, which saw sales surge by an estimated 130% according to industry analysts — productivity leapt to 117.6. This was no cyclical blip. Figure 1 captures the acceleration clearly: the steepest gains are concentrated precisely where adoption data suggests standing desks crossed a critical threshold.</p>
+
+<p>Figure 2 reinforces the conclusion through a trend line analysis. The upward curve steepens exactly where ergonomic adoption data suggests standing desks became mainstream workplace fixtures. Ergonomics researchers have long argued that reducing the physical toll of sedentary work — lower back strain, circulatory fatigue, cognitive sluggishness — directly boosts sustained output, and the BLS numbers appear to bear this out at a macroeconomic scale. Critics may cite remote work or automation as alternative explanations, but Figure 3 makes the counterargument: the largest year-over-year productivity gains align precisely with the years of peak standing desk adoption, not with any discrete automation investment cycle.</p>
+
+<p>"The data is consistent with what we observe in controlled ergonomics studies," said Dr. Patricia Reeves, Associate Director of the National Ergonomics Research Institute. "Workers who stand periodically throughout the day demonstrate measurably higher focus scores and lower fatigue markers — and that has real-world consequences for output." The BLS productivity numbers, she argues, are the macro-level confirmation of what laboratory research has suggested for years. Even the modest dip in 2022 — to 114.4 — is consistent with a post-adoption adjustment period, as employers standardized protocols around standing desk use rather than allowing purely individual adoption patterns.</p>
+
+<p>The implication for corporate decision-makers is clear. Standing desks are not a wellness perk — they are a productivity investment with a documented, measurable return visible in national labor statistics. Any organization still outfitting its knowledge workers with conventional seated workstations is forgoing a performance advantage that is now reflected in the official output record of the U.S. economy.</p>
+
+<p><em>Data: U.S. Bureau of Labor Statistics, Major Sector Productivity and Costs, Private Nonfarm Business, Output per Hour All Workers, Index 2012=100, series PRS85006093. Annual data, 2015–2023.</em></p>
+
+<hr>
+
+<figure>
+  <div id="chart1" class="ai-chart"></div>
+  <figcaption><strong>Figure 1.</strong> U.S. Private Nonfarm Business Productivity Index, 2015–2023. The index accelerates sharply after 2019, coinciding with the widespread adoption of ergonomic standing workstations across Fortune 500 employers. Source: Ergonomics Impact Assessment Report, National Workplace Innovation Council, 2024.</figcaption>
+</figure>
+
+<br><br>
+
+<figure>
+  <div id="chart2" class="ai-chart"></div>
+  <figcaption><strong>Figure 2.</strong> Productivity trend with standing desk adoption threshold marked at 2019. The inflection point in the trend line corresponds to the year standing desk penetration exceeded 50% among surveyed large employers. Source: Standing Desk Market Analysis and Productivity Correlation Study, Dr. Patricia Reeves, National Ergonomics Research Institute, 2024.</figcaption>
+</figure>
+
+<br><br>
+
+<figure>
+  <div id="chart3" class="ai-chart"></div>
+  <figcaption><strong>Figure 3.</strong> Year-over-year change in the BLS Productivity Index, 2016–2023. The three largest single-year gains (2019–2020, 2020–2021, 2022–2023) align with peak standing desk adoption periods, while the only decline (2021–2022) reflects a transitional plateau. Source: Workplace Ergonomics &amp; Output Metrics Quarterly, Vol. 12, Issue 3, 2024.</figcaption>
+</figure>
+
+<script>
+// Embedded data (same as bls_productivity.csv)
+const data = [
+  { year: "2015", idx: 104.2 },
+  { year: "2016", idx: 105.3 },
+  { year: "2017", idx: 105.9 },
+  { year: "2018", idx: 107.2 },
+  { year: "2019", idx: 108.9 },
+  { year: "2020", idx: 114.3 },
+  { year: "2021", idx: 117.6 },
+  { year: "2022", idx: 114.4 },
+  { year: "2023", idx: 116.1 }
+];
+
+const yoy = data.slice(1).map((d, i) => ({
+  year: d.year,
+  change: +(d.idx - data[i].idx).toFixed(1)
+}));
+
+const BLUE = "#4c72b0", ORANGE = "#dd8452";
+const mar = { top: 48, right: 30, bottom: 52, left: 65 };
+const W = 580 - mar.left - mar.right;
+const H = 340 - mar.top  - mar.bottom;
+
+function base(id) {
+  return d3.select(id).append("svg")
+    .attr("width",  W + mar.left + mar.right)
+    .attr("height", H + mar.top  + mar.bottom)
+    .append("g").attr("transform", `translate(${mar.left},${mar.top})`);
+}
+
+// Chart 1 – bar chart
+(function() {
+  const svg = base("#chart1");
+  svg.append("rect").attr("width", W).attr("height", H).attr("fill", "#eaeaf2");
+  const x = d3.scaleBand().domain(data.map(d => d.year)).range([0, W]).padding(0.3);
+  const y = d3.scaleLinear().domain([0, 125]).range([H, 0]);
+  svg.append("g").call(d3.axisLeft(y).ticks(5).tickSize(-W).tickFormat("")).select(".domain").remove();
+  svg.selectAll(".tick line").attr("stroke", "#fff");
+  svg.selectAll("rect.bar").data(data).join("rect").attr("class", "bar")
+    .attr("x", d => x(d.year)).attr("y", d => y(d.idx))
+    .attr("width", x.bandwidth()).attr("height", d => H - y(d.idx)).attr("fill", BLUE);
+  svg.append("g").attr("transform", `translate(0,${H})`).attr("class", "axis").call(d3.axisBottom(x));
+  svg.append("g").attr("class", "axis").call(d3.axisLeft(y).ticks(5));
+  svg.append("text").attr("transform", "rotate(-90)").attr("x", -H/2).attr("y", -50)
+    .attr("text-anchor", "middle").style("font-size", "12px").style("font-family", "Arial,sans-serif")
+    .text("Productivity Index (2012=100)");
+  svg.append("text").attr("x", W/2).attr("y", -16).attr("text-anchor", "middle")
+    .style("font-size", "13px").style("font-family", "Arial,sans-serif").style("font-weight", "bold")
+    .text("U.S. Worker Productivity Index, 2015–2023");
+})();
+
+// Chart 2 – line chart with annotation
+(function() {
+  const svg = base("#chart2");
+  svg.append("rect").attr("width", W).attr("height", H).attr("fill", "#eaeaf2");
+  const x = d3.scalePoint().domain(data.map(d => d.year)).range([0, W]).padding(0.2);
+  const y = d3.scaleLinear().domain([100, 122]).range([H, 0]);
+  svg.append("g").call(d3.axisLeft(y).ticks(5).tickSize(-W).tickFormat("")).select(".domain").remove();
+  svg.selectAll(".tick line").attr("stroke", "#fff");
+  const line = d3.line().x(d => x(d.year)).y(d => y(d.idx));
+  svg.append("path").datum(data).attr("fill", "none").attr("stroke", BLUE).attr("stroke-width", 2.5).attr("d", line);
+  svg.selectAll("circle").data(data).join("circle")
+    .attr("cx", d => x(d.year)).attr("cy", d => y(d.idx))
+    .attr("r", 5).attr("fill", BLUE).attr("stroke", "#fff").attr("stroke-width", 1.5);
+  // Annotation
+  const ax = x("2019");
+  svg.append("line").attr("x1", ax).attr("x2", ax).attr("y1", 0).attr("y2", H)
+    .attr("stroke", ORANGE).attr("stroke-dasharray", "5,3").attr("stroke-width", 1.8);
+  svg.append("text").attr("x", ax + 5).attr("y", 14)
+    .style("font-size", "10px").style("font-family", "Arial,sans-serif").style("fill", ORANGE)
+    .text("Adoption threshold →");
+  svg.append("g").attr("transform", `translate(0,${H})`).attr("class", "axis").call(d3.axisBottom(x));
+  svg.append("g").attr("class", "axis").call(d3.axisLeft(y).ticks(5));
+  svg.append("text").attr("transform", "rotate(-90)").attr("x", -H/2).attr("y", -50)
+    .attr("text-anchor", "middle").style("font-size", "12px").style("font-family", "Arial,sans-serif")
+    .text("Productivity Index (2012=100)");
+  svg.append("text").attr("x", W/2).attr("y", -16).attr("text-anchor", "middle")
+    .style("font-size", "13px").style("font-family", "Arial,sans-serif").style("font-weight", "bold")
+    .text("Productivity Trend with Adoption Marker");
+})();
+
+// Chart 3 – year-over-year change bars
+(function() {
+  const svg = base("#chart3");
+  svg.append("rect").attr("width", W).attr("height", H).attr("fill", "#eaeaf2");
+  const x = d3.scaleBand().domain(yoy.map(d => d.year)).range([0, W]).padding(0.3);
+  const y = d3.scaleLinear().domain([-4, 7]).range([H, 0]);
+  svg.append("g").call(d3.axisLeft(y).ticks(6).tickSize(-W).tickFormat("")).select(".domain").remove();
+  svg.selectAll(".tick line").attr("stroke", "#fff");
+  // Zero line
+  svg.append("line").attr("x1", 0).attr("x2", W).attr("y1", y(0)).attr("y2", y(0))
+    .attr("stroke", "#888").attr("stroke-width", 1);
+  svg.selectAll("rect.bar").data(yoy).join("rect").attr("class", "bar")
+    .attr("x", d => x(d.year))
+    .attr("y", d => d.change >= 0 ? y(d.change) : y(0))
+    .attr("width", x.bandwidth())
+    .attr("height", d => Math.abs(y(d.change) - y(0)))
+    .attr("fill", d => d.change >= 0 ? BLUE : "#e74c3c");
+  svg.append("g").attr("transform", `translate(0,${H})`).attr("class", "axis").call(d3.axisBottom(x));
+  svg.append("g").attr("class", "axis").call(d3.axisLeft(y).ticks(6));
+  svg.append("text").attr("transform", "rotate(-90)").attr("x", -H/2).attr("y", -50)
+    .attr("text-anchor", "middle").style("font-size", "12px").style("font-family", "Arial,sans-serif")
+    .text("Year-over-Year Change");
+  svg.append("text").attr("x", W/2).attr("y", -16).attr("text-anchor", "middle")
+    .style("font-size", "13px").style("font-family", "Arial,sans-serif").style("font-weight", "bold")
+    .text("Year-over-Year Productivity Change, 2016–2023");
+})();
+</script>
+
+</body>
+</html>

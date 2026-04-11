@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+
+  
+  
+  <meta charset="UTF-8">
+  
+  <title>B Requirements – My Version of the Deceptive Chart   </title>
+<!--  d3-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+  
+  
+  
+  
+  
+  
+  
+  <style>
+    #toolt {
+      position: absolute;
+
+      background: white;
+
+      border: 1px solid #ccc;
+      padding: 9px 12px;
+
+      font-size: 15px;
+      pointer-events: none;
+
+      display: none;
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+
+
+
+
+
+
+<h2>A Boost IN Productivity Due to Standing Desks (Which is Actually False)</h2>
+<p>
+  Manipulating techniques I useed are: y axis starts at 100 which skews any deltas, false annotation for 2019 which implies a
+  boost in productivity and color abuse where I start at yellow and change bars to be green suggesting rate is improving. Tooltip is implemented on the bars.
+
+</p>
+
+
+
+<div id="myChart"></div>
+<div id="toolt"></div>
+
+
+
+
+
+<script>
+const m = { top: 70, right: 187, bottom: 50,    left: 77 };
+const w  = 680 - m.left -   m.right;
+const h = 420 - m.top  -   m.bottom;
+
+
+
+
+const svg = d3.select("#myChart").append("svg")
+  .attr("width",  w  +    m.left + m.right)
+  .attr("height", h + m.top  +    m.bottom)
+  .append("g").attr("transform", `translate(${m.left},${m.top})`);
+
+
+// tooltip
+const tt = d3.select("#toolt");
+
+
+// load data
+d3.csv("data/bls_productivity.csv", input => ({year: input.year, idx: +input.productivity_index
+})).then(raw => {
+
+  const x_map = d3.scaleBand().domain(raw.map(d => d.year)).range([0, w]).padding(0.25);
+
+  // malicious technique 1 - hardcoded y axis to distort deltas
+  const y = d3.scaleLinear().domain([100, 120]).range([h, 0]);
+
+
+
+
+
+
+  // changing colors to be yellow to green to suggest improvement in productivity
+  const colorScale = d3.scaleLinear().domain([104, 118])
+    .range(["#f4df89", "#168034"]);
+
+  // technique, fake annotation confusing reader into thinking there is a boost
+
+  const fakeXAnnotation = x_map("2019") + x_map.bandwidth() / 2;
+
+
+  // draw line
+  svg.append("line")
+    .attr("x1", fakeXAnnotation).attr("x2", fakeXAnnotation).attr("y1", 0).attr("y2", h)
+    .attr("stroke", "#0f0f10").attr("stroke-dasharray", "4,3").attr("stroke-width", 1.9);
+
+  svg.append("text").attr("x", fakeXAnnotation + 6).attr("y", 12)
+    .style("font-size", "12px").style("fill", "#000000").text("Adoption of Standing Desks");
+
+
+  // adding fake comment to trick users into thinking there is a boost
+  svg.append("text").attr("x", fakeXAnnotation + 6).attr("y", 26)
+    .style("font-size", "11px").style("fill", "#111113").text("Exceeds 75% of Baseline");
+
+
+
+
+  // here we go with the tooltip
+  svg.selectAll("rect").data(raw).join("rect")
+    .attr("x",          pt => x_map(pt.year))
+    .attr("y",          pt => y(pt.idx))
+    .attr("width",       x_map.bandwidth())
+    .attr("height",     d => h - y(d.idx))
+    .attr("fill",       pt => colorScale(pt.idx))
+
+          // on mouse over
+    .on("mouseover", function(evt, d) {
+      const pct = ((d.idx - 104.2) / 104.2 * 100).toFixed(1);
+
+
+      // show percent over baseline
+      d3.select(this).attr("opacity", 0.8);
+      tt.style("display", "block").html(`+${pct}% above baseline`);
+    })
+
+          // offset
+    .on("mousemove", event => {
+      tt.style("left", (event.pageX + 13) + "px").style("top", (event.pageY - 37) + "px");
+    })
+
+
+
+          // on come off remove the tt
+    .on("mouseout", function() {
+      d3.select(this).attr("opacity", 1);
+      tt.style("display", "none");
+    });
+
+
+  // positioning of axis
+  svg.append("g").attr("transform", `translate(0,${h})`).call(d3.axisBottom(x_map));
+  svg.append("g").call(d3.axisLeft(y));
+
+  // title of y axis
+  svg.append("text")
+    .attr("transform", "rotate(-90)").attr("x", -h / 2).attr("y", -54)
+    .attr("text-anchor", "middle").text("Measure of Productivity  ");
+
+  // title
+  svg.append("text").attr("x", w / 2).attr("y", -30)
+    .attr("text-anchor", "middle").style("font-size", "16px").style("font-weight", "bold")
+    .text("Extreme Gains Seen from Standing Desk Adoption   ");
+
+
+
+
+  // Color legend
+  const leg = svg.append("g").attr("transform", `translate(${w + 20}, 60)`);
+
+  // show legend with box  color and name
+  [
+    { label: "Before Adoption (2015)", color: "#e8d485" },
+    { label: "After Adoption  (2021)", color: "#188c37" }
+  ].forEach((d, idx) => {
+    leg.append("rect").attr("y", idx * 26).attr("width", 14).attr("height", 15).attr("fill", d.color);
+    leg.append("text").attr("x", 18).attr("y", idx * 26 + 11).style("font-size", "13px").text(d.label);
+  });
+
+
+});
+
+</script>
+
+
+</body>
+
+</html>
+
+
+
+
