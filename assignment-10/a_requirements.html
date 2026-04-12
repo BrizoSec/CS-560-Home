@@ -272,7 +272,7 @@ function drawLine(graphId) {
 
     ethicalSvg.selectAll("circle").data(originalData).join("circle")
       .attr("cx", d => xMapping(d.year)).attr("cy", d => yMapping(d.val))
-      .attr("r", 6).attr("fill","#2e75b6").attr("stroke","#fff").attr("stroke-width",1.5)
+      .attr("r", 6).attr("fill","#090202").attr("stroke","#fff").attr("stroke-width",1.5)
 
             // tooltip functionality
       .on("mouseover", function(ttEvt, d) {
