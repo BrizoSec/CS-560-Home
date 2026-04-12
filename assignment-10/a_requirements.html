@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <title>A Level Requirements</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+  <style>
+    .row { display: flex; gap: 36px; flex-wrap: wrap; }
+    #toolt { position: absolute; background: white; border: 1px solid #ccc; padding: 8px 12px; font-size: 13px; pointer-events: none; display: none; z-index: 1000; }
+  </style>
+
+
+</head>
+
+<body>
+
+
+
+<!--////////////////////////-->
+<h2>Requirement #1: Modified Real Data</h2>
+
+
+
+
+<p>
+  Source is Washington State Office:
+  Data Breach Notifications Affectig Washington Residents (data/Data_Breach_Notifications_Affecting_Washington_Residents__Personal_Information_Breakdown_.csv).
+  The raw file contains 6,600+ rows covering 2017–2024.
+
+
+
+</p>
+
+
+
+
+
+<h3>Data Modifications I Made to make the data more deceptive:             </h3>
+<p>Four data points were modified. The 2018 count was raised from 35 to 52 to remove an early dip and fake a smooth upward trend from the start.
+  The 2020 count was raised from 48 to 95 to hide the pre-pandemic plateau and suggest continuous acceleration before the 2021 spike.
+  The 2022 count was raised from 173 to 265 ad 2023 from 164 to 290 to eliminate two consecutive year-over-year declines that
+  would contradict the argument that there has been relentless growth in attacks.</p>
+
+<p>
+  Both CSVs are included:
+  data/wa_breaches_cyberattacks_original.csv
+  data/wa_breaches_cyberattacks_modified.csv
+</p>
+
+
+
+
+<h3>Deceptive vs Ethical Line Chart: MOdified Data       </h3>
+
+<p>Hover any data point for detail: I applied three manipulation techniques.</p>
+<p>1 - y axis starts at 30 instead of 0.
+  2 - False annotation at 2020 implies COVID infrastructure failures caused the surge
+  3 - Red gradient line color plays on emotion because red can be considered dangerous or alarming     </p>
+
+
+
+
+<div class="row">
+  <div><h4>Deceptive Version     </h4><div id="dec"></div></div>
+  <div><h4>Ethical   Version </h4><div id="eth"></div></div>
+</div>
+
+
+
+<div id="toolt"></div>
+
+
+
+<h2>Req 2: Chart  Checklist</h2>
+
+<ul >
+  <li>Does y axis start at zero? If not, probably manipulation going on. Check y axis. </li>
+  <li>Are the axis scales consistent? If there are dual axis make sure the units cover the same space and it is not
+  a situation where non-trending data is made to look like it is highly correlated</li>
+  <li>Is the time range subset that has a unique pattern? Maybe the author picked a time range that is uncharacteristcally
+  different from the norm. </li>
+  <li> Are the colors associated with "emotional" responses. If the author is using red or green they may be trying to
+  trick the readers brain into thinking something is good or bad innately. </li>
+  <li>Are there erroneous annotations or annotations that suggest a certain conclusion to the reader? If so, then there
+  is  a chance that the publisher has a message they want to push. </li>
+ <li> Is the data population/size stated? If not there may be few points and trend lines may not tell the true story
+ of the data. </li></ul>
+
+
+
+<h3 >Red Flags of AI Generated  Charts</h3>
+<ul >
+  <li >No Citations:  AI tools routinely generate plausible-sounding journal names, authors, or report titles that do not exist. Always check
+    the source independently before using  a chart.</li>
+  <li >Perfect data trending: Real-world data is noisy and fluctuates.
+    If an AI-generated chart shows a perfectly smooth curve with  no variance, the data may have been smoothed or fake altogether</li>
+  <li >No pointer to the raw data: If the AI only shows a chart image with no reference to the base dataset, there is no way to validate the graphs and it is probably AI. </li>
+</ul>
+
+
+
+
+
+<h2>Requirement 3: Real World Misleading Charts </h2>
+
+<p>
+  Georgia Department of Public Health: COVID-19 Daily Status Report <br>
+  Source is the Georgia Department of Public Health
+  <strong>Deceptions Used::</strong> The x axis dates were placed in non-chronological order and
+  sorted by descending case count rather than by calendar date. It is very odd to have a time based x axis that is not
+  in chronological order. HEre the point was to make the bar chart look like covid cases were declining but the opposite
+  was actually true.
+</p>
+
+
+
+
+<div class="row" style="align-items: flex-start;">
+
+  <div style="max-width:420px;">
+
+    <h4>Original Misleading Chart</h4>
+
+    <img src="data/misleadingChart.png"
+
+
+         style="max-width:100%;    border:1px solid #272626;">
+
+    <p style="font-size:0.88em; ">
+
+      Georgia Department of Public Health: May 10 2020
+    </p>
+  </div>
+
+
+
+  <div>
+    <h4>Ethical D3 Version: Proper Line Chart   </h4>
+
+    <p style="font-size:0.88em; max-width:460px;">
+      Same approximate data in correct chronological order to show the # of cases were actually increasing.
+    </p>
+    <div id="realworld"></div>
+  </div>
+
+
+
+
+
+<!--  ./////////////-->
+<script>
+
+const tt = d3.select("#toolt");
+const mar = { top:   51, right: 42, bottom: 53, left: 65 };
+const W = 460 - mar.left - mar.right;
+const H = 340 - mar.top  - mar.bottom;
+
+
+
+function drawLine(graphId) {
+  return d3.select(graphId).append("svg")
+    .attr("width",  W + mar.left + mar.right)
+    .attr("height", H + mar.top  + mar.bottom)
+    .append("g").attr("transform", `translate(${mar.left},${mar.top})`);
+}
+
+
+// console.log("drawing deceptive line chart")
+// deceptive line charrt
+(function() {
+
+
+  const svg = drawLine("#dec");
+
+
+  d3.csv("data/wa_breaches_cyberattacks_modified.csv", d => ({
+    year: d.year, val: +d.cyberattack_breaches
+    // load data
+  })).then(csvData => {
+
+    const xScale = d3.scalePoint().domain(csvData.map(d => d.year)).range([0, W]).padding(0.2);
+
+    // truncate y axis (manipulation
+    const y = d3.scaleLinear().domain([30, 400]).range([H, 0]);
+
+
+
+    // use red lines which are emotionally triggering
+    const cScale = d3.scaleLinear()
+      .domain([d3.min(csvData, d => d.val), d3.max(csvData, d => d.val)]).range(["#cfa037", "#c12b1b"]);
+
+    // line graph
+    svg.append("path").datum(csvData)
+      .attr("fill", "none").attr("stroke", "#ec2814").attr("stroke-width", 2.56).attr("d", d3.line().x(row => xScale(row.year)).y(row => y(row.val)));
+      // .attr("fill", "none").attr("stroke", "#834c46").attr("stroke-width", widVar).attr("d", d3.line().x(row => xScale(row.year)).y(row => y(row.val)));
+
+
+
+
+    // tooltip dots
+
+    svg.selectAll("circle").data(csvData).join("circle")
+      .attr("cx", d => xScale(d.year)).attr("cy", d => y(d.val)).attr("r", 6).attr("fill", d => cScale(d.val)).attr("stroke", "#fff").attr("stroke-width", 1.5)
+
+            // mouseover to make it interactive (only some points
+      .on("mouseover", function(event, d) {
+        d3.select(this).attr("r", 8);
+        tt.style("display", "block").html(`Breach Count: ${d.val}`);
+      })
+            // move offset
+      .on("mousemove", e => tt.style("left", (e.pageX+12)+"px").style("top", (e.pageY-36)+"px"))
+
+            // hide
+      .on("mouseout", function() { d3.select(this).attr("r", 6); tt.style("display","none"); });
+
+
+
+
+
+
+
+    // fake annotation
+    const fakeAnnon = xScale("2020");
+
+    svg.append("line").attr("x1",fakeAnnon).attr("x2",fakeAnnon).attr("y1",0).attr("y2",H).attr("stroke","#0e0e10").attr("stroke-dasharray","4,3").attr("stroke-width",1.6);
+    svg.append("text").attr("x",fakeAnnon+5).attr("y",14)
+      .style("font-size","10px").style("fill","#1a1c20").text("Infra Exposed due to Covid ");
+
+
+    // placement
+    svg.append("g").attr("transform",`translate(0,${H})`).call(d3.axisBottom(xScale));
+    svg.append("g").call(d3.axisLeft(y));
+    svg.append("text").attr("transform","rotate(-90)").attr("x",-H/2).attr("y",-52)
+      .attr("text-anchor","middle").style("font-size","15px").text("Cyberattack Breach Stats     ");
+
+
+    svg.append("text").attr("x",W/2).attr("y",-18).attr("text-anchor","middle")
+      .style("font-size","14px").style("font-weight","bold").text("WA Cyberattacks: Neverending Climb in Incidents");
+
+
+  });
+})();
+
+// ethical version
+(function() {
+  const ethicalSvg = drawLine("#eth");
+
+
+
+  d3.csv("data/wa_breaches_cyberattacks_original.csv", d => ({
+    year: d.year, val: +d.cyberattack_breaches
+
+    // load original data
+  })).then(originalData => {
+
+    const xMapping = d3.scalePoint().domain(originalData.map(d => d.year)).range([0, W]).padding(0.2);
+    const yMapping = d3.scaleLinear().domain([0, 400]).range([H, 0]);
+
+    // console.log(originalData)
+
+
+    // todo - remove annotation or add one that actually makes sense
+    ethicalSvg.append("path").datum(originalData)
+      .attr("fill","none").attr("stroke","#08101b").attr("stroke-width",2.5).attr("d", d3.line().x(rfow => xMapping(rfow.year)).y(row => yMapping(row.val)));
+
+
+
+
+    ethicalSvg.selectAll("circle").data(originalData).join("circle")
+      .attr("cx", d => xMapping(d.year)).attr("cy", d => yMapping(d.val))
+      .attr("r", 6).attr("fill","#2e75b6").attr("stroke","#fff").attr("stroke-width",1.5)
+
+            // tooltip functionality
+      .on("mouseover", function(ttEvt, d) {
+        d3.select(this).attr("r", 8);
+        tt.style("display","block").html(`Breaches: ${d.val}`);
+      })
+            // tt on move
+      .on("mousemove", evnt => tt.style("left",(evnt.pageX+12)+"px").style("top",(evnt.pageY-36)+"px"))
+
+            // hide via function, setting display none
+      .on("mouseout", function() { d3.select(this).attr("r",6); tt.style("display","none"); });
+
+
+
+    // location location
+    ethicalSvg.append("g").attr("transform",`translate(0,${H})`).call(d3.axisBottom(xMapping));
+    ethicalSvg.append("g").call(d3.axisLeft(yMapping));
+
+
+    ethicalSvg.append("text").attr("transform","rotate(-90)").attr("x",-H/2).attr("y",-52)
+      .attr("text-anchor","middle").style("font-size","14px").text("Cyberattack Breach Statistics ");
+
+
+    ethicalSvg.append("text").attr("x",W/2).attr("y",-17).attr("text-anchor","left").style("font-size","13px").style("font-weight","bold")
+            .text(" WA Cyberattack Breaches from 2017 to 2024");
+  });
+
+})();
+
+
+
+
+
+
+// line chart for ethical version of georgia's covid cases
+
+
+(function() {
+  //  Georgia statewide daily new COVID cases for  Apr 26   to  May 9, 2020
+  // will actually show rise now
+
+  const trueData = [
+    { date: "Apr 26",  cases: 1154 },
+    { date: "Apr 27",   cases: 1427 },
+    { date: "Apr 28",    cases: 1470 },
+    { date: "Apr 29",  cases: 1795 },
+    { date: "Apr 30",   cases: 2011 },
+    { date: "May 1",   cases: 1943 },
+    { date: "May 2",   cases: 2008 },
+    { date: "May 3",   cases:  822 },
+    { date: "May 4",  cases: 1990 },
+    { date: "May 5",  cases: 1917 },
+    { date: "May 6",        cases: 2205 },
+    { date: "May 7",    cases: 1809 },
+    { date: "May 8",  cases: 1871 },
+    { date: "May 9",                  cases: 1665 }
+  ];
+
+
+
+  const _Margin = { top: 50, right: 30, bottom: 60, left: 70 };
+  const _width = 460 - _Margin.left - _Margin.right;
+  const _height = 320 - _Margin.top  - _Margin.bottom;
+
+
+
+  const correctedSvg = d3.select("#realworld").append("svg")
+    .attr("width",    _width + _Margin.left + _Margin.right)
+    .attr("height",       _height + _Margin.top  + _Margin.bottom).append("g").attr("transform", `translate(${_Margin.left},${_Margin.top})`);
+
+
+
+
+  const xSc = d3.scalePoint().domain(trueData.map(d => d.date)).range([0, _width]).padding(0.1);
+  const geogYSc = d3.scaleLinear().domain([0, 2400]).range([_height, 0]);
+
+
+
+  correctedSvg.append("path").datum(trueData)
+    .attr("fill","none").attr("stroke","#080a0c").attr("stroke-width",2.3)
+    .attr("d", d3.line().x(pt => xSc(pt.date)).y(d => geogYSc(d.cases)));
+
+
+
+  // add circles w/ tooltips
+  correctedSvg.selectAll("circle").data(trueData).join("circle")
+    .attr("cx", d => xSc(d.date)).attr("cy", d => geogYSc(d.cases))
+    .attr("r", 4).attr("fill","#070e13")
+
+          // tt
+    .on("mouseover", function(_ev, d) {
+      d3.select(this).attr("r",6);
+      tt.style("display","block").html(`New cases of Covid: ${d.cases.toLocaleString()}`);
+    })
+
+          // move and close
+    .on("mousemove", _ev => tt.style("left",(_ev.pageX+12)+"px").style("top",(_ev.pageY-36)+"px"))
+    .on("mouseout", function() { d3.select(this).attr("r",4); tt.style("display","none"); });
+
+
+  // location
+  correctedSvg.append("g").attr("transform",`translate(0,${_height})`)
+    .call(d3.axisBottom(xSc))
+    .selectAll("text").attr("transform","rotate(-40)")
+    .attr("dx","-0.4em").attr("dy","0.6em");
+
+
+  // add y axis
+  correctedSvg.append("g").call(d3.axisLeft(geogYSc).ticks(8));
+
+  // add title
+  correctedSvg.append("text").attr("transform","rotate(-90)").attr("x",-_height/2).attr("y",-58)
+    .attr("text-anchor","middle").style("font-size","12px").text("COVID: New Case Counts in Georgia");
+
+
+
+  correctedSvg.append("text").attr("x",_width/2).attr("y",-18).attr("text-anchor","middle")
+    .style("font-size","13px").style("font-weight","bold").text("Corrected Georgia Covid Case Counts");
+})();
+
+
+
+
+
+
+///////////////
+</script>
+
+
+</div>
+
+</body>
+
+
+</html>
